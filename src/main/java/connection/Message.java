@@ -31,6 +31,8 @@ public class Message {
         this.message = message;
     }
 
+
+
     public MessageType getType() {
         return type;
     }
@@ -96,5 +98,7 @@ public class Message {
     public static Message fromServer(String messageText, String receiver) {
         return new Message(SERVER_MSG, null, receiver, messageText);
     }
-    
+    public static Message fromServer(String messageText) {
+        return fromServer(messageText, null);
+    }
 }

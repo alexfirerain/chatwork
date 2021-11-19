@@ -19,7 +19,7 @@ class MessageBuildingTest {
     @Test
     void reg_message_forms() {
         Message regMessage = fromClientInput("/reg " + GENERAL_SENDER, "");
-        assertThat(regMessage.getType(), equalTo(PRIVATE_MSG));
+        assertThat(regMessage.getType(), equalTo(REG_REQUEST));
         assertThat(regMessage.getSender(), equalTo(GENERAL_SENDER));
         assertThat(regMessage.getAddressee(), isEmptyOrNullString());
         assertThat(regMessage.getMessage(), isEmptyOrNullString());

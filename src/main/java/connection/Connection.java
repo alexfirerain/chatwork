@@ -41,14 +41,13 @@ public class Connection implements Runnable, AutoCloseable {
     public void run() {
         // пока не зарегистрируется участник, регистрируем
         while (!host.hasMappingFor(this)) {
-
+            host.registerUser(this);
         }
 
         // пока соединено, считываем входящие сообщения и передаём их серверу на обработку.
         while (!socket.isClosed()) {
             try {
-                Message gotMessage = (Message) messageReceiver.readObject();
-                host.operateOn(gotMessage);
+                host.operateOn(getMessage());
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -57,5 +56,9 @@ public class Connection implements Runnable, AutoCloseable {
 
     public void send(Message message) throws IOException {
         messageSender.writeObject(message);
+    }
+
+    public Message getMessage() throws IOException, ClassNotFoundException {
+        return (Message) messageReceiver.readObject();
     }
 }
