@@ -1,6 +1,6 @@
-package connection;
+package server;
 
-import server.Server;
+import connection.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -9,12 +9,14 @@ import java.net.Socket;
 
 public class Connection implements Runnable, AutoCloseable {
     private final Server host;
+    private final Dispatcher dispatcher;
     private final Socket socket;
     private final ObjectInputStream messageReceiver;
     private final ObjectOutputStream messageSender;
 
     public Connection(Server host, Socket socket) throws IOException {
         this.host = host;
+        dispatcher = host.users;
         this.socket = socket;
         messageReceiver = new ObjectInputStream(socket.getInputStream());
         messageSender = new ObjectOutputStream(socket.getOutputStream());
@@ -39,15 +41,13 @@ public class Connection implements Runnable, AutoCloseable {
      */
     @Override
     public void run() {
-        // пока не зарегистрируется участник, регистрируем
-        while (!host.hasMappingFor(this)) {
-            host.registerUser(this);
-        }
+        // регистрируем участника
+        dispatcher.registerUser(this);
 
         // пока соединено, считываем входящие сообщения и передаём их серверу на обработку.
         while (!socket.isClosed()) {
             try {
-                host.operateOn(getMessage());
+                operateOn(getMessage());
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -60,5 +60,39 @@ public class Connection implements Runnable, AutoCloseable {
 
     public Message getMessage() throws IOException, ClassNotFoundException {
         return (Message) messageReceiver.readObject();
+    }
+
+    /**
+     * Обрабатывает полученное на сервер сообщение от участника.
+     * @param gotMessage полученное сообщение.
+     */
+    public void operateOn(Message gotMessage) {
+        String sender = gotMessage.getSender();
+
+        switch (gotMessage.getType()) {
+            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);
+            case TXT_MSG -> dispatcher.sendToAllButSender(gotMessage);
+            case REG_REQUEST -> dispatcher.changeName(sender, this);
+            case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
+            case EXIT_REQUEST -> dispatcher.disconnect(sender);
+            case SHUT_REQUEST -> dispatcher.getShut(sender, host);
+        }
+    }
+
+    /**
+     * Создаёт новое серверное сообщение, содержащее сведения о подключённых
+     * в текущий момент участниках, адресуя его тому, кто запросил этот список.
+     * @param requesting участник, запросивший список.
+     * @return  серверное сообщение со списком подключённых участников.
+     */
+    private Message usersListMessage(String requesting) {
+        StringBuilder report = new StringBuilder("Подключено участников: " + dispatcher.getUsers().size());
+        for (String user : dispatcher.getUsers())
+            report.append("\n").append(user);
+        return Message.fromServer(report.toString(), requesting);
+    }
+
+    public boolean isClosed() {
+        return socket.isClosed();
     }
 }

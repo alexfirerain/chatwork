@@ -65,6 +65,22 @@ public class Message {
         return Objects.hash(message);
     }
 
+    /**
+     * Создаёт новое сообщение от клиента на основании его ввода.
+     * @param inputText текст, введённый пользователем.
+     * @param sender    имя пользователя, под которым он участвует
+     *                 или планирует участвовать в беседе.
+     * @return  новое сообщение с типом и получателем, определёнными
+     * по условным знакам в начале введённого пользователем текста:
+     * <ul>
+     * <li>"@имя_получателя" = персональное сообщение</li>
+     * <li>"/reg" = запрос от участника на смену имени</li>
+     * <li>"/users" = запрос списка участников беседы</li>
+     * <li>"/exit" = запрос на выход из беседы</li>
+     * <li>"/terminate" = запрос на выключение сервера</li>
+     * <li>иначе: обычное текстовое сообщение</li>
+     * </ul>
+     */
     public static Message fromClientInput(String inputText, String sender) {
         MessageType type = TXT_MSG;
         String addressee = null;
@@ -89,16 +105,40 @@ public class Message {
                 case "users" -> type = LIST_REQUEST;
                 case "exit" -> type = EXIT_REQUEST;
                 case "terminate" -> type = SHUT_REQUEST;
-                default -> message = inputText;
+                default -> message = inputText;         // всегда true?
             }
         }
         return new Message(type, sender, addressee, message);
     }
 
+    /**
+     * Создаёт серверное сообщение с заданным текстом для указанного участника.
+     * @param messageText заданный текст.
+     * @param receiver    указанный участник.
+     * @return  новое серверное сообщение на указанный адрес с заданным текстом.
+     */
     public static Message fromServer(String messageText, String receiver) {
         return new Message(SERVER_MSG, null, receiver, messageText);
     }
+    /**
+     * Создаёт серверное сообщение для всех с заданным текстом.
+     * @param messageText заданный текст.
+     * @return  новое серверное сообщение с заданным текстом без указания получателя.
+     */
+
     public static Message fromServer(String messageText) {
         return fromServer(messageText, null);
+    }
+
+    /**
+     * Создаёт новое сообщение с запросом регистрации без необходимости введения
+     * условного знака "/reg" (в ответ на запрос имени при вхождении в беседу).
+     * @param putName введённый пользователем текст, трактуемый как регистрируемое имя.
+     * @return  новое сообщение с запросом регистрации введённого пользователем имени.
+     */
+    public static Message registering(String putName) {
+        if (putName.startsWith("/reg "))
+            putName = putName.substring("/reg ".length());
+        return new Message(REG_REQUEST, putName, null, null);
     }
 }
