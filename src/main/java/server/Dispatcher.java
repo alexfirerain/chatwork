@@ -14,23 +14,27 @@ public class Dispatcher {
             "Введите своё имя (до " + Server.nickLengthLimit + " букв)";
     private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
     private static final String CHANGE_FAILED = "Сменить имя на такое не получилось!";
+    private static final String CLOSING_TXT = "Сервер завершает работу!";
+    private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
 
+    /**
+     * Список участников в виде карты "имя-соединение".
+     */
     private final Map<String, Connection> users;
 
+    /**
+     * Инициализирует новый Диспетчер с пустым списком участников.
+     */
     public Dispatcher() {
         users = new ConcurrentHashMap<>();
     }
 
-    public boolean contains(String user) {
-        return users.containsKey(user);
-    }
 
-    public Set<String> getUsers() {
-        return new HashSet<>(users.keySet());
-    }
-
+    /*
+        Методы работы со списком участников.
+     */
     /**
-     * Фиксирует связь данного имени с данным соединением, если имя и соединение существуют
+     * Фиксирует связь данного имени с данным соединением, если имя и соединение существуют,
      * и такое имя на текущий момент не зафиксировано в списке актуальных.
      * @param userName   регистрируемое имя.
      * @param connection регистрируемое соединение.
@@ -47,10 +51,19 @@ public class Dispatcher {
         return true;
     }
 
-    public boolean removeUser(String userName) {
-        return users.remove(userName) != null;
+    /**
+     * Возвращает набор всех актуальных пользователей.
+     * @return набор подключённых в настоящий момент участников.
+     */
+    public Set<String> getUsers() {
+        return new HashSet<>(users.keySet());
     }
 
+    /**
+     * Возвращает набор актуальных участников за исключением одного указанного.
+     * @param aUser  участник, которого не нужно упоминать.
+     * @return набор актуальных участников кроме одного.
+     */
     public Set<String> getUsersBut(String aUser) {
         return getUsers().stream()
                 .filter(x -> !x.equals(aUser))
@@ -68,13 +81,22 @@ public class Dispatcher {
     }
 
     /**
-     * Сообщает, связано ли данное соединение с именем участника.
+     * Сообщает зарегистрированное на данное соединение имя участника.
      * @param connection данное соединение.
-     * @return  {@code истинно}, если такая связь имеет место.
+     * @return  имя участника, на которого зарегистрировано это соединение,
+     * или, если такового нет, {@code ничто}.
      */
-    public boolean hasMappingFor(Connection connection) {
-        return users.containsValue(connection);
+    private String getUserForConnection(Connection connection) {
+        for (Map.Entry<String, Connection> entry : users.entrySet())
+            if (entry.getValue() == connection)
+                return entry.getKey();
+        return null;
     }
+
+
+    /*
+        Методы отсылки сообщений участникам.
+     */
 
     /**
      * Отсылает данное сообщение участнику с данным именем.
@@ -90,9 +112,9 @@ public class Dispatcher {
                 e.printStackTrace();
             }
         } else {
-            throw new IllegalArgumentException(
-                    "Сообщение не может быть отправлено: участник %s не подключён."
-                    .formatted(username));
+            String error = String.format(
+                    "Сообщение не может быть отправлено: участник %s не подключён.", username);
+            System.out.println(error);
         }
     }
 
@@ -111,59 +133,6 @@ public class Dispatcher {
      */
     public void sendToAllBut(Message message, String username) {
         getUsersBut(username).forEach(user -> sendTo(message, user));
-    }
-
-    /**
-     * Проводит регистрацию имени пользователя для данного соединения.
-     * @param connection соединение, используемое для общения с пользователем
-     *                   и привязываемое к полученному от него имени.
-     */
-    public void registerUser(Connection connection) {
-        try {
-            connection.send(Message.fromServer(PROMPT_TEXT));
-            String sender = connection.getMessage().getSender();
-            while(!addUser(sender, connection)) {
-                connection.send(Message.fromServer(WARN_TXT));
-                sender = connection.getMessage().getSender();
-            }
-            broadcast(Message.fromServer(greeting(sender)));
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Меняет, если это возможно, регистрированное имя для соединения,
-     * с которого пришёл такой запрос. Если по какой-то причине это не получается,
-     * шлёт запросившему об этом уведомление.
-     * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
-     * @param connection соединение, которое требуется переназначить на новое имя.
-     */
-    public void changeName(String newName, Connection connection) {
-        String oldName = getUserForConnection(connection);
-        if (addUser(newName, connection)) {
-            users.remove(oldName);
-            broadcast(Message.fromServer(nameChanged(oldName, newName)));
-        } else {
-            try {
-                connection.send(Message.fromServer(CHANGE_FAILED, oldName));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Сообщает зарегистрированное на данное соединение имя участника.
-     * @param connection данное соединение.
-     * @return  имя участника, на которого зарегистрировано это соединение,
-     * или, если такового нет, {@code ничто}.
-     */
-    private String getUserForConnection(Connection connection) {
-        for (Map.Entry<String, Connection> entry : users.entrySet())
-            if (entry.getValue() == connection)
-                return entry.getKey();
-        return null;
     }
 
     /**
@@ -188,22 +157,97 @@ public class Dispatcher {
     }
 
     /**
-     * Отключает указанного участника от беседы: закрывает ассоциированное
-     * с ним соединение, удаляет его из реестра и уведомляет актуальных участников о его уходе.
-     * @param username имя участника, покидающего чат.
+     * Проводит регистрацию имени пользователя для данного соединения.
+     * @param connection соединение, используемое для общения с пользователем
+     *                   и привязываемое к полученному от него имени.
      */
-    public void disconnect(String username) {
+    public void registerUser(Connection connection) {
         try {
-            getConnectionFor(username).close();
-            users.remove(username);
-            broadcast(Message.fromServer(farewell(username)));
-
-        } catch (Exception e) {
+            connection.send(Message.fromServer(PROMPT_TEXT));
+            String sender = connection.getMessage().getSender();
+            while(!addUser(sender, connection)) {
+                connection.send(Message.fromServer(WARN_TXT));
+                sender = connection.getMessage().getSender();
+            }
+            connection.exitPrivateMode();
+            broadcast(Message.fromServer(greeting(sender)));
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Меняет, если это возможно, регистрированное имя для соединения,
+     * с которого пришёл такой запрос. Если по какой-то причине это не получается,
+     * шлёт запросившему об этом уведомление.
+     * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
+     * @param connection соединение, которое требуется переназначить на новое имя.
+     */
+    public void changeName(String newName, Connection connection) {
+        String oldName = getUserForConnection(connection);
+        if (addUser(newName, connection)) {
+            users.remove(oldName);
+            broadcast(Message.fromServer(nameChanged(oldName, newName)));
+        } else {
+            send(Message.fromServer(CHANGE_FAILED, oldName));
+        }
+    }
 
+
+
+    /**
+     * Отключает указанного участника от беседы: закрывает ассоциированное
+     * с ним соединение, удаляет его из реестра и уведомляет актуальных участников о его уходе.
+     * @param username имя участника, покидающего чат.
+     */
+    public void disconnectUser(String username) {
+        if (disconnect(username))
+            broadcast(Message.fromServer(farewell(username)));
+    }
+
+    /**
+     * Отключает указанного участника от беседы: закрывает ассоциированное с ним соединение
+     * и удаляет его из реестра участников.
+     * @param username имя участника, покидающего чат.
+     * @return {@code истинно}, если такой участник был найден и теперь отключён.
+     */
+    private boolean disconnect(String username) {
+        try {
+            getConnectionFor(username).close();
+            users.remove(username);
+            return true;
+        } catch (Exception e) {
+            String error = "Не удалось отключить участника: " + username;
+            System.out.println(error);
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
+    public void getShut(String requesting, Server server) {
+        Connection invoker = getConnectionFor(requesting);
+        invoker.enterPrivateMode();
+        send(Message.fromServer(PASSWORD_REQUEST, requesting));
+        byte[] gotPassword = new byte[0];
+        try {
+            gotPassword = invoker.getMessage().getMessage().getBytes();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        invoker.exitPrivateMode();
+        if (server.wordPasses(gotPassword))
+            server.stopServer();
+    }
+
+    public void closeSession() {
+        broadcast(Message.fromServer(CLOSING_TXT));
+        getUsers().forEach(this::disconnect);
+    }
+
+    /*
+        Методы-генераторы теста серверных уведомлений.
+     */
     private String greeting(String entrant) {
         return "К беседе присоединяется %s!"
                 .formatted(entrant);
@@ -215,9 +259,5 @@ public class Dispatcher {
     private String farewell(String leavingUser) {
         return "%s оставляет беседу."
                 .formatted(leavingUser);
-    }
-
-    public void getShut(String requesting, Server server) {
-
     }
 }
