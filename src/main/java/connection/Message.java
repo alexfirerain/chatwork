@@ -93,8 +93,8 @@ public class Message {
             message = inputText.substring(delimiterIndex + 1);
         }
         if (inputText.startsWith("/")) {
-            String command = inputText.substring(1, inputText.indexOf(" "));
             message = null;
+            String command = inputText.substring(1, inputText.indexOf(" "));
             switch (command) {
                 case "reg" -> {
                     type = REG_REQUEST;
@@ -105,7 +105,7 @@ public class Message {
                 case "users" -> type = LIST_REQUEST;
                 case "exit" -> type = EXIT_REQUEST;
                 case "terminate" -> type = SHUT_REQUEST;
-                default -> message = inputText;         // всегда true?
+                default -> message = inputText;
             }
         }
         return new Message(type, sender, addressee, message);

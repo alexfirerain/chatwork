@@ -57,6 +57,12 @@ public class Dispatcher {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Выдаёт соединение, ассоциированное с указанным именем участника.
+     * @param user имя, для которого ищется соединение.
+     * @return соединение, ассоциированное с участником, либо,
+     * если такое имя не найдено, {@code ничто}.
+     */
     public Connection getConnectionFor(String user) {
         return users.get(user);
     }
@@ -64,7 +70,7 @@ public class Dispatcher {
     /**
      * Сообщает, связано ли данное соединение с именем участника.
      * @param connection данное соединение.
-     * @return  {@code истина}, если такая связь имеет место.
+     * @return  {@code истинно}, если такая связь имеет место.
      */
     public boolean hasMappingFor(Connection connection) {
         return users.containsValue(connection);
@@ -126,8 +132,13 @@ public class Dispatcher {
         }
     }
 
-
-
+    /**
+     * Меняет, если это возможно, регистрированное имя для соединения,
+     * с которого пришёл такой запрос. Если по какой-то причине это не получается,
+     * шлёт запросившему об этом уведомление.
+     * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
+     * @param connection соединение, которое требуется переназначить на новое имя.
+     */
     public void changeName(String newName, Connection connection) {
         String oldName = getUserForConnection(connection);
         if (addUser(newName, connection)) {
@@ -172,10 +183,15 @@ public class Dispatcher {
      * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
      * @param message рассылаемое сообщение.
      */
-    public void sendToAllButSender(Message message) {
+    public void broadcastFrom(Message message) {
         sendToAllBut(message, message.getSender());
     }
 
+    /**
+     * Отключает указанного участника от беседы: закрывает ассоциированное
+     * с ним соединение, удаляет его из реестра и уведомляет актуальных участников о его уходе.
+     * @param username имя участника, покидающего чат.
+     */
     public void disconnect(String username) {
         try {
             getConnectionFor(username).close();

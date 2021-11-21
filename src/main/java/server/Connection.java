@@ -71,7 +71,7 @@ public class Connection implements Runnable, AutoCloseable {
 
         switch (gotMessage.getType()) {
             case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);
-            case TXT_MSG -> dispatcher.sendToAllButSender(gotMessage);
+            case TXT_MSG -> dispatcher.broadcastFrom(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
             case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
             case EXIT_REQUEST -> dispatcher.disconnect(sender);
