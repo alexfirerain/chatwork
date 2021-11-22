@@ -158,7 +158,7 @@ public class Dispatcher {
 
     /**
      * Проводит регистрацию имени пользователя для данного соединения.
-     * @param connection соединение, используемое для общения с пользователем
+     * @param connection соединение, используемое для общения с пользователем (в приватном режиме)
      *                   и привязываемое к полученному от него имени.
      */
     public void registerUser(Connection connection) {
@@ -224,7 +224,11 @@ public class Dispatcher {
         return false;
     }
 
-
+    /**
+     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника.
+     * @param requesting имя участника, запросившего выключение сервера.
+     * @param server     сервер, который должен быть остановлен.
+     */
     public void getShut(String requesting, Server server) {
         Connection invoker = getConnectionFor(requesting);
         invoker.enterPrivateMode();
@@ -240,13 +244,17 @@ public class Dispatcher {
             server.stopServer();
     }
 
+    /**
+     * Рассылает всем участникам уведомление о завершении работы
+     * и отключает их всех.
+     */
     public void closeSession() {
         broadcast(Message.fromServer(CLOSING_TXT));
         getUsers().forEach(this::disconnect);
     }
 
     /*
-        Методы-генераторы теста серверных уведомлений.
+        Методы-генераторы текста серверных уведомлений.
      */
     private String greeting(String entrant) {
         return "К беседе присоединяется %s!"

@@ -15,9 +15,9 @@ import java.util.concurrent.Executors;
 public class Server {
     private static final File settingsSource = new File("settings.ini");
     public static final int nickLengthLimit = 15;
-    private final static int port_default = 7777;
-    private final static byte[] password_default = "0000".getBytes();
-    private final static String host_default = "localhost";
+    private static final int port_default = 7777;
+    private static final byte[] password_default = "0000".getBytes();
+    private static final String host_default = "localhost";
 
     private final ExecutorService connections = Executors.newCachedThreadPool();
     final Dispatcher users = new Dispatcher();
@@ -25,6 +25,7 @@ public class Server {
     private final String HOST;
     private final int PORT;
     private final byte[] PASSWORD;
+
     private boolean running;
 
     /**
@@ -89,6 +90,11 @@ public class Server {
         chatwork.listen();
     }
 
+    /**
+     * Слушает на заданном серверном порту за входящие подключения.
+     * Обнаружив таковое, запускает его в новый поток в обойме подключений.
+     * А когда пора завершаться, выполнит остановку и всё погасит.
+     */
     private void listen() {
         running = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -97,7 +103,8 @@ public class Server {
                 connections.execute(new Connection(this, socket));
             }
         } catch (IOException e) {
-            System.out.println("Прослушивание порта завершилось: " + e.getMessage());
+            String error = "Непредвиденное завершение работы: " + e.getMessage();
+            System.out.println(error);
             e.printStackTrace();
         }
         users.closeSession();

@@ -138,7 +138,7 @@ public class Message {
      */
     public static Message registering(String putName) {
         if (putName.startsWith("/reg "))
-            putName = putName.substring("/reg ".length());
+            putName = putName.substring("/reg ".length()).strip();
         return new Message(REG_REQUEST, putName, null, null);
     }
 }
