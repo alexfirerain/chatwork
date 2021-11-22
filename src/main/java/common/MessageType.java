@@ -1,4 +1,4 @@
-package connection;
+package common;
 
 /**
  * Сервер может посылать клиенту первые три типа сообщения

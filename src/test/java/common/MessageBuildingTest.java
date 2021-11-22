@@ -1,14 +1,12 @@
-package connection;
+package common;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static connection.MessageType.*;
+import static common.MessageType.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-import static connection.Message.fromClientInput;
-import static org.junit.jupiter.api.Assertions.*;
+import static common.Message.fromClientInput;
 
 class MessageBuildingTest {
     private static final String GENERAL_SENDER = "отправитель";
