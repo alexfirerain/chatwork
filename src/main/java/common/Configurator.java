@@ -8,10 +8,17 @@ import java.util.Map;
 import java.util.Optional;
 
 public class Configurator {
-    Map<String,String> settings;
+    private final Map<String,String> settings;
 
-    public Configurator(Path settingsFile) throws IOException {
-        settings = readSettings(settingsFile);
+    public Configurator(Path settingsFile) {
+        Map<String, String> settingsMap;
+        try {
+            settingsMap = readSettings(settingsFile);
+        } catch (IOException e) {
+            System.out.println("Настройки из файла не были загружены, используется пустой конфигуратор!");
+            settingsMap = new HashMap<>();
+        }
+        settings = settingsMap;
     }
 
     /**
@@ -33,9 +40,21 @@ public class Configurator {
         return settingsMap;
     }
 
+    /**
+     * Возвращает опционально строку, соответсвующую значению запрошенного параметра.
+     * @param name имя параметра.
+     * @return  опциональ со значением параметра, либо,
+     * если параметр отсутствует в файле настроек, пустую опциональ.
+     */
     public Optional<String> getStringProperty(String name) {
         return Optional.ofNullable(settings.get(name));
     }
+    /**
+     * Возвращает опционально int, соответсвующий значению запрошенного параметра.
+     * @param name имя параметра.
+     * @return  опциональ со значением параметра, либо, если параметр отсутствует
+     * в файле настроек или число не было распознано, пустую опциональ.
+     */
     public Optional<Integer> getIntProperty(String name) {
         String stringValue = settings.get(name);
         if (stringValue == null)

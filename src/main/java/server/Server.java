@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 public class Server {
     private static final File settingsSource = new File("settings.ini");
     public static final int nickLengthLimit = 15;
+
     private static final int port_default = 7777;
     private static final byte[] password_default = "0000".getBytes();
     private static final String host_default = "localhost";
@@ -54,39 +55,17 @@ public class Server {
      * Если чтение файла или каких-либо настроек не удаётся, назначает
      * все или некоторые значения по умолчанию.
      * @param settingFile адрес файла настроек.
-     * @return новый Сервер, попытавшись инициализировать его настройки из файла.
      */
-    public static Server onSettingsFile(Path settingFile) {
-        String host = host_default;
-        int port = port_default;
-        byte[] password = password_default;
-        try {
-            Map<String, String> settings = Configurator.readSettings(settingFile);
-
-            String host_value = settings.get("HOST");
-            if (host_value != null && !host_value.isBlank())
-                host = host_value;
-
-            try {
-                if (settings.get("PORT") != null)
-                    port = Integer.parseInt(settings.get("PORT"));
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
-
-            String password_value = settings.get("PASSWORD");
-            if (password_value != null && !password_value.isBlank())
-                password = password_value.getBytes();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return new Server(host, port, password);
+    public Server(Path settingFile) {
+        Configurator config = new Configurator(settingFile);
+        HOST = config.getStringProperty("HOST").orElse(host_default);
+        PORT = config.getIntProperty("PORT").orElse(port_default);
+        PASSWORD = (config.getStringProperty("PASSWORD")
+                .orElse(Arrays.toString(password_default))).getBytes();
     }
 
     public static void main(String[] args) {
-        Server chatwork = Server.onSettingsFile(Path.of("settings.ini"));
+        Server chatwork = new Server(Path.of("settings.ini"));
         chatwork.listen();
     }
 
@@ -95,7 +74,7 @@ public class Server {
      * Обнаружив таковое, запускает его в новый поток в обойме подключений.
      * А когда пора завершаться, выполнит остановку и всё погасит.
      */
-    private void listen() {
+    public void listen() {
         running = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (running) {
@@ -120,6 +99,11 @@ public class Server {
         return Arrays.equals(PASSWORD, password);
     }
 
+
+    /**
+     * Останавливает сервер, выставляя соответствующий флажок
+     * и создавая фантомное подключение для провокации финальной итерации цикла.
+     */
     public void stopServer() {
         running = false;
         // виртуальное подключение к серверу, чтобы разблокировать его ожидание на порту
