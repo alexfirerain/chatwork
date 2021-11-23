@@ -1,10 +1,10 @@
-package connection;
+package common;
 
 import server.Server;
 
 import java.util.Objects;
 
-import static connection.MessageType.*;
+import static common.MessageType.*;
 
 public class Message {
     /**

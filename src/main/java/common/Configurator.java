@@ -5,8 +5,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-public class Config {
+public class Configurator {
+    Map<String,String> settings;
+
+    public Configurator(Path settingsFile) throws IOException {
+        settings = readSettings(settingsFile);
+    }
+
     /**
      * Читает настройки из файла и представляет их в виде карты "параметр-значение".
      * @param settingsSource адрес читаемого файла.
@@ -24,5 +31,20 @@ public class Config {
                     line.substring(delim + 1).strip());
         }
         return settingsMap;
+    }
+
+    public Optional<String> getStringProperty(String name) {
+        return Optional.ofNullable(settings.get(name));
+    }
+    public Optional<Integer> getIntProperty(String name) {
+        String stringValue = settings.get(name);
+        if (stringValue == null)
+            return Optional.empty();
+        try {
+            return Optional.of(Integer.parseInt(stringValue));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+
     }
 }
