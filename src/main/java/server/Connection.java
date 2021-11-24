@@ -8,7 +8,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * Исполняемая в самостоятельном потоке логика работы с конкретным подключением.
+ * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
  */
 public class Connection implements Runnable, AutoCloseable {
     private final Server host;
@@ -96,11 +96,11 @@ public class Connection implements Runnable, AutoCloseable {
         String sender = gotMessage.getSender();
 
         switch (gotMessage.getType()) {
-            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен?
+            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации?
             case TXT_MSG -> dispatcher.broadcastFrom(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
             case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
-            case EXIT_REQUEST -> dispatcher.disconnectUser(sender);
+            case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
             case SHUT_REQUEST -> dispatcher.getShut(sender, host);
         }
     }

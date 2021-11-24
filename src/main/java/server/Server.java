@@ -8,7 +8,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -64,6 +63,12 @@ public class Server {
                 .orElse(Arrays.toString(password_default))).getBytes();
     }
 
+    /**
+     * Сценарий исполнения Сервера: создать новый экземпляр
+     * и запустить с него прослушивание на установленном порту.
+     * @param args можно передавать имя файла настроек,
+     *            но в данном случае оно фиксированное.
+     */
     public static void main(String[] args) {
         Server chatwork = new Server(Path.of("settings.ini"));
         chatwork.listen();

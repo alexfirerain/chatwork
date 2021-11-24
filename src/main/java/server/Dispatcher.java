@@ -9,6 +9,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * Реализует логику работы с подключениями: регистрация участников беседы, их учёт,
+ * определение, кому какое сообщение отправлять, обработка событий смены имени,
+ * выхода из разговора или команды на остановку сервера.
+ */
 public class Dispatcher {
     private static final String PROMPT_TEXT = "Добро пожаловать в переговорную комнату!\n" +
             "Введите своё имя (до " + Server.nickLengthLimit + " букв)";
@@ -163,7 +168,7 @@ public class Dispatcher {
      */
     public void registerUser(Connection connection) {
         try {
-            connection.send(Message.fromServer(PROMPT_TEXT));
+            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.getMessage().getSender();
             while(!addUser(sender, connection)) {
                 connection.send(Message.fromServer(WARN_TXT));
@@ -200,7 +205,7 @@ public class Dispatcher {
      * с ним соединение, удаляет его из реестра и уведомляет актуальных участников о его уходе.
      * @param username имя участника, покидающего чат.
      */
-    public void disconnectUser(String username) {
+    public void goodbyeUser(String username) {
         if (disconnect(username))
             broadcast(Message.fromServer(farewell(username)));
     }
@@ -225,7 +230,9 @@ public class Dispatcher {
     }
 
     /**
-     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника.
+     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
+     * и, если получает пароль, совпадающий с установленным на сервере,
+     * запускает остановку сервера.
      * @param requesting имя участника, запросившего выключение сервера.
      * @param server     сервер, который должен быть остановлен.
      */

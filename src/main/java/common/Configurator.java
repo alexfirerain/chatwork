@@ -1,5 +1,6 @@
 package common;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,9 +8,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Служебный класс для чтения настроек из файла
+ * или записи их в файл.
+ */
 public class Configurator {
     private final Map<String,String> settings;
 
+    /**
+     * Создаёт новый Конфигуратор на основе указанного файла настроек.
+     * @param settingsFile путь к файлу настроек.
+     */
     public Configurator(Path settingsFile) {
         Map<String, String> settingsMap;
         try {
@@ -53,6 +62,7 @@ public class Configurator {
     public Optional<String> getStringProperty(String name) {
         return Optional.ofNullable(settings.get(name));
     }
+
     /**
      * Возвращает опционально int, соответсвующий значению запрошенного параметра.
      * @param name имя параметра.
@@ -69,5 +79,28 @@ public class Configurator {
             return Optional.empty();
         }
 
+    }
+
+    /**
+     * Сохраняет настройки, полученные в виде карты <строка, строка>,
+     * в файл по указанному адресу.
+     * @param settings карта сохраняемых настроек.
+     * @param storage  путь к месту сохранения.
+     */
+    public static void writeSettings(Map<String, String> settings, Path storage) {
+        StringBuilder string = new StringBuilder();
+        for (Map.Entry<String, String> property : settings.entrySet())
+            string.append(property.getKey())
+                    .append(" = ")
+                    .append(property.getValue())
+                    .append(";\r\n");
+        try (FileWriter writer = new FileWriter(String.valueOf(storage), false)) {
+            writer.write(string.toString());
+            writer.flush();
+        } catch (IOException e) {
+            String error = "Не удалось сохранить настройки в " + storage;
+            System.out.println(error);
+            e.printStackTrace();
+        }
     }
 }
