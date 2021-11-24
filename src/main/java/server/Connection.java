@@ -32,18 +32,12 @@ public class Connection implements Runnable, AutoCloseable {
         messageSender = new ObjectOutputStream(socket.getOutputStream());
     }
 
-
-    @Override
-    public void close() throws Exception {
-        socket.close();
-    }
     public void enterPrivateMode() {
         privateMode = true;
     }
     public void exitPrivateMode() {
         privateMode = false;
     }
-
     /**
      * Когда объект, воплощающий интерфейс {@code Runnable}, используется
      * для создания нити, запуск ({@code start}) нити означает вызов метода
@@ -67,6 +61,8 @@ public class Connection implements Runnable, AutoCloseable {
                 try {
                     operateOn(getMessage());
                 } catch (IOException | ClassNotFoundException e) {
+                    String error = "Ошибка обработки сообщения: " + e.getMessage();
+                    System.out.println(error);
                     e.printStackTrace();
                 }
             }
@@ -122,7 +118,17 @@ public class Connection implements Runnable, AutoCloseable {
         return Message.fromServer(report.toString(), requesting);
     }
 
+    /**
+     * Сообщает, закрыт ли сокетный канал.
+     * @return {@code истинно}, если сокет был открыт, а теперь закрыт;
+     * {@code ложно}, если сокет открыт, либо ещё не открывался.
+     */
     public boolean isClosed() {
         return socket.isClosed();
+    }
+
+    @Override
+    public void close() throws Exception {
+        socket.close();
     }
 }

@@ -33,9 +33,13 @@ public class Configurator {
         String source = Files.readString(settingsSource);
         String[] lines = source.split(";");
         for (String line : lines) {
+            if (line.isBlank()) continue;
             int delim = line.indexOf("=");
-            settingsMap.put(line.substring(0, delim).strip(),
-                    line.substring(delim + 1).strip());
+            if (delim == -1) continue;
+            String name = line.substring(0, delim).strip();
+            String value = line.substring(delim + 1).strip();
+            if (name.isBlank() || value.isBlank()) continue;
+            settingsMap.put(name, value);
         }
         return settingsMap;
     }
