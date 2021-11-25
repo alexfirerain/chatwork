@@ -4,6 +4,7 @@ import common.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.Objects;
 
 
 /**
@@ -25,7 +26,7 @@ public class Receiver extends Thread {
             try {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
-                if (gotMessage.getAddressee() != null)
+                if (Objects.equals(gotMessage.getAddressee(), client.getUserName()))
                     client.setRegistered();
 
 
@@ -38,19 +39,7 @@ public class Receiver extends Thread {
     }
 
     private void display(Message gotMessage) {
-        StringBuilder output = new StringBuilder(switch (gotMessage.getType()) {
-            case SERVER_MSG -> ">>> Серверное сообщение:\n";
-            case PRIVATE_MSG -> ">>> Личное сообщение:\n";
-            default -> "";
-        });
 
-        if (gotMessage.getSender() != null)
-            output.append(gotMessage.getSender()).append(" > ");
-
-        output.append(gotMessage.getMessage());
-
-        String text = output.toString();
-
-        System.out.println(text);
+        System.out.println(gotMessage);
     }
 }

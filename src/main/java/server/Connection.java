@@ -14,23 +14,28 @@ public class Connection implements Runnable, AutoCloseable {
     private final Server host;
     private final Dispatcher dispatcher;
     private final Socket socket;
-    private final ObjectInputStream messageReceiver;
-    private final ObjectOutputStream messageSender;
+//    private final ObjectInputStream messageReceiver;
+//    private final ObjectOutputStream messageSender;
     private boolean privateMode = true;
 
     /**
      * Создаёт новое Соединение ассоциированного Сервера над указанным Сокетом.
      * @param host   какой сервер установил это соединение.
      * @param socket собственно соединение с конкретным удалённым адресом.
-     * @throws IOException при ошибках получения входящего или исходящего потока.
+// * @throws IOException при ошибках получения входящего или исходящего потока.
      */
-    public Connection(Server host, Socket socket) throws IOException {
+    public Connection(Server host, Socket socket) {
         System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
-        messageReceiver = new ObjectInputStream(socket.getInputStream());
-        messageSender = new ObjectOutputStream(socket.getOutputStream());
+//        try {
+//            messageReceiver = new ObjectInputStream(socket.getInputStream());
+//            messageSender = new ObjectOutputStream(socket.getOutputStream());
+//        } catch (IOException e) {
+//            System.out.println("gettingStreams error:");
+//            e.printStackTrace();
+//        }
         System.out.println("the Connection set: " + this.host + " / " + dispatcher + " / " + socket.getRemoteSocketAddress()); // monitor
     }
 
@@ -79,6 +84,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException при невозможности записать в поток.
      */
     public void send(Message message) throws IOException {
+        ObjectOutputStream messageSender = new ObjectOutputStream(socket.getOutputStream());
         messageSender.writeObject(message);
     }
 
@@ -89,6 +95,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
     public Message getMessage() throws IOException, ClassNotFoundException {
+        ObjectInputStream messageReceiver = new ObjectInputStream(socket.getInputStream());
         return (Message) messageReceiver.readObject();
     }
 

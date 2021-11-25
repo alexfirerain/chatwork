@@ -33,8 +33,11 @@ public class Client {
     private final int PORT;
     private final Path settingFile;
 
+    public String getUserName() {
+        return userName;
+    }
+
     private String userName;
-    private Receiver receiver;
     private volatile boolean isRegistered = false;
     private Socket socket;
 
@@ -109,7 +112,7 @@ public class Client {
              ObjectOutputStream messagesOut = new ObjectOutputStream(connection.getOutputStream())) {
 
             socket = connection;
-            receiver = new Receiver(this, messagesIn);
+            Receiver receiver = new Receiver(this, messagesIn);
             receiver.start();
             messagesOut.writeObject(Message.registering(userName));
             while (!isRegistered) {

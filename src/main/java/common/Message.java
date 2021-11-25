@@ -2,11 +2,15 @@ package common;
 
 import server.Server;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 
 import static common.MessageType.*;
 
-public class Message {
+public class Message implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
     /**
      * служебное поле, определяющее тип
      */
@@ -32,6 +36,7 @@ public class Message {
         this.sender = sender;
         this.addressee = addressee;
         this.message = message;
+        System.out.printf("[%s]", this);        // monitor
     }
 
 
@@ -66,6 +71,20 @@ public class Message {
     @Override
     public int hashCode() {
         return Objects.hash(message);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder output = new StringBuilder(switch (type) {
+            case SERVER_MSG -> ">>> Серверное сообщение:\n";
+            case PRIVATE_MSG -> ">>> Личное сообщение:\n";
+            default -> "";
+        });
+        if (sender != null)
+            output.append(sender).append(" > ");
+        if (message != null)
+            output.append(message);
+        return output.toString();
     }
 
     /**
@@ -128,7 +147,6 @@ public class Message {
      * @param messageText заданный текст.
      * @return  новое серверное сообщение с заданным текстом без указания получателя.
      */
-
     public static Message fromServer(String messageText) {
         return fromServer(messageText, null);
     }

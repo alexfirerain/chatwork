@@ -83,7 +83,7 @@ public class Server {
         running = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (running) {
-                final Socket socket = serverSocket.accept();
+                Socket socket = serverSocket.accept();
                 System.out.println("connected with " + socket.getRemoteSocketAddress()); // monitor
                 connections.execute(new Connection(this, socket));
             }
