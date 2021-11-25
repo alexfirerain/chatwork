@@ -25,11 +25,13 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException при ошибках получения входящего или исходящего потока.
      */
     public Connection(Server host, Socket socket) throws IOException {
+        System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
         messageReceiver = new ObjectInputStream(socket.getInputStream());
         messageSender = new ObjectOutputStream(socket.getOutputStream());
+        System.out.println("the Connection set: " + this.host + " / " + dispatcher + " / " + socket.getRemoteSocketAddress()); // monitor
     }
 
     public void enterPrivateMode() {
@@ -51,7 +53,9 @@ public class Connection implements Runnable, AutoCloseable {
     @Override
     public void run() {
         // регистрируем участника
+        System.out.println("the Connection started"); // monitor
         dispatcher.registerUser(this);
+        System.out.println("registering passed"); // monitor
 
         // пока соединено
         while (!socket.isClosed()) {

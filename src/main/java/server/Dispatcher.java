@@ -167,6 +167,7 @@ public class Dispatcher {
      *                   и привязываемое к полученному от него имени.
      */
     public void registerUser(Connection connection) {
+        System.out.println("entering registering"); // monitor
         try {
             connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.getMessage().getSender();
