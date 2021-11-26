@@ -44,29 +44,40 @@ public class Client {
 
     public static void main(String[] args) {
 
-        // Определение файла настроек и запуск на его основе нового клиента:
+        // Определение файла настроек и запуск на его основе нового клиента
+        Client client = new Client(identifySource(args));
+
+        // Приветствие пользователя, уточнение имени для регистрации
+        client.enterUser();
+
+        // Установление соединения с Сервером
+        client.connect();
+
+
+    }
+
+    private static Path identifySource(String[] args) {
         String filePath;
-        do {
-            if (args.length >= 1 && Files.isRegularFile(Path.of(args[0]))) {
-                filePath = args[0];
-            } else {
-                System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
-                filePath = usersInput.nextLine();
-            }
+        do if (args.length >= 1 && Files.isRegularFile(Path.of(args[0]))) {
+            filePath = args[0];
+        } else {
+            System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
+            filePath = usersInput.nextLine();
         } while (!Files.isRegularFile(Path.of(filePath)));
-
         System.out.println("Настройки загружены из " + filePath);
-        Client client = new Client(Path.of(filePath));
-        client.welcome();
+        return Path.of(filePath);
+    }
 
+    private void enterUser() {
+        System.out.println("Добро пожаловать в программу для общения!");
         // Определение имени для попытки автоматической регистрации:
-        String nameToUse = client.userName;
+        String nameToUse = userName;
         if (!isAcceptableName(nameToUse)) {
             System.out.println("Введите имя, под которым примете участие в беседе:");
             nameToUse = usersInput.nextLine();
         } else {
             System.out.println("Имя для участия в беседе = " + nameToUse +
-            "\nНажмите <Ввод> для его использования либо введите другое:");
+                    "\nНажмите <Ввод> для его использования либо введите другое:");
             String inputName = usersInput.nextLine();
             if (isAcceptableName(inputName))
                 nameToUse = inputName;
@@ -75,20 +86,11 @@ public class Client {
             System.out.println("Введите имя для регистрации:");
             nameToUse = usersInput.nextLine();
         }
-        client.userName = nameToUse;
-
-        // Установление соединения с Сервером.
-        client.connect();
-
-
-    }
-
-    private void welcome() {
-        System.out.println("Добро пожаловать в программу для общения!");
+        userName = nameToUse;
     }
 
     public void setRegistered() {
-        System.out.println("set as registered");
+        System.out.println(this + " set as registered");    // monitor
         isRegistered = true;
     }
 
@@ -117,7 +119,8 @@ public class Client {
             receiver.start();
             messagesOut.writeObject(Message.registering(userName));
             while (!isRegistered) {
-                messagesOut.writeObject(Message.registering(usersInput.nextLine()));
+                String inputName = usersInput.nextLine();
+                messagesOut.writeObject(Message.registering(inputName));
             }
             saveSettings();
             while (!connection.isClosed()) {

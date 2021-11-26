@@ -20,17 +20,18 @@ public class Message implements Serializable {
      */
     final private String sender;
 
-    public void setAddressee(String addressee) {
-        this.addressee = addressee;
-    }
-
     /**
-     * указатель получателя для персонального текстового (или информационного) сообщения,
-     * у публичного сообщения остаётся пустым,
-     * также по отсутствию имени получателя в серверном сообщении клиент определяет,
-     * что регистрация на сервере ещё не завершена
+     * Указатель получателя для персонального текстового (или информационного) сообщения,
+     * у публичного сообщения остаётся пустым.<p>
+     * Широковещательная отправка от сервера ({@code .broadcast(Message)}) явно устанавливает
+     * это поле. Клиент, впервые обнаружив в этом поле в полученном сообщении имя,
+     * которое собирается зарегистрировать, переходит из регистрационного режима в основной.
      */
     private String addressee;
+    public void setAddressee(String addressee) {
+        this.addressee = addressee;
+        System.out.println("Receiver of the message is set");   // monitor
+    }
     /**
      * сообщаемая в сообщении строка
      */
@@ -43,8 +44,6 @@ public class Message implements Serializable {
         this.message = message;
         System.out.printf("[%s]%n", this);        // monitor
     }
-
-
 
     @Override
     public String toString() {
