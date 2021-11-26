@@ -73,6 +73,7 @@ public class Connection implements Runnable, AutoCloseable {
                     String error = "Ошибка обработки сообщения: " + e.getMessage();
                     System.out.println(error);
                     e.printStackTrace();
+                    break;
                 }
             }
         }

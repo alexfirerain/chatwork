@@ -19,13 +19,18 @@ public class Message implements Serializable {
      * автор сообщения (для регистрирующего сообщения регистрируемое имя), сервер оставляет пустым
      */
     final private String sender;
+
+    public void setAddressee(String addressee) {
+        this.addressee = addressee;
+    }
+
     /**
      * указатель получателя для персонального текстового (или информационного) сообщения,
      * у публичного сообщения остаётся пустым,
      * также по отсутствию имени получателя в серверном сообщении клиент определяет,
      * что регистрация на сервере ещё не завершена
      */
-    final private String addressee;
+    private String addressee;
     /**
      * сообщаемая в сообщении строка
      */
@@ -36,42 +41,10 @@ public class Message implements Serializable {
         this.sender = sender;
         this.addressee = addressee;
         this.message = message;
-        System.out.printf("[%s]", this);        // monitor
+        System.out.printf("[%s]%n", this);        // monitor
     }
 
 
-
-    public MessageType getType() {
-        return type;
-    }
-
-    public String getSender() {
-        return sender;
-    }
-
-    public String getAddressee() {
-        return addressee;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Message another = (Message) o;
-        return type == another.type &&
-                Objects.equals(sender, another.sender) &&
-                Objects.equals(addressee, another.addressee) &&
-                Objects.equals(message, another.message);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(message);
-    }
 
     @Override
     public String toString() {
@@ -142,6 +115,7 @@ public class Message implements Serializable {
     public static Message fromServer(String messageText, String receiver) {
         return new Message(SERVER_MSG, null, receiver, messageText);
     }
+
     /**
      * Создаёт серверное сообщение для всех с заданным текстом.
      * @param messageText заданный текст.
@@ -150,7 +124,6 @@ public class Message implements Serializable {
     public static Message fromServer(String messageText) {
         return fromServer(messageText, null);
     }
-
     /**
      * Создаёт новое сообщение с запросом регистрации без необходимости введения
      * условного знака "/reg" (в ответ на запрос имени при вхождении в беседу).
@@ -161,5 +134,37 @@ public class Message implements Serializable {
         if (putName.startsWith("/reg "))
             putName = putName.substring("/reg ".length()).strip();
         return new Message(REG_REQUEST, putName, null, null);
+    }
+
+    public MessageType getType() {
+        return type;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public String getAddressee() {
+        return addressee;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message another = (Message) o;
+        return type == another.type &&
+                Objects.equals(sender, another.sender) &&
+                Objects.equals(addressee, another.addressee) &&
+                Objects.equals(message, another.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(message);
     }
 }

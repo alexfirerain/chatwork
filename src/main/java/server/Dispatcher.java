@@ -124,11 +124,15 @@ public class Dispatcher {
     }
 
     /**
-     * Отсылает данное сообщение всем актуальным участникам.
+     * Отсылает данное сообщение всем актуальным участникам,
+     * при этом явно добавляя в это сообщение указание получателя.
      * @param message данное сообщение.
      */
     public void broadcast(Message message) {
-        getUsers().forEach(user -> sendTo(message, user));
+        getUsers().forEach(user -> {
+            message.setAddressee(user);
+            sendTo(message, user);
+        });
     }
 
     /**
@@ -142,7 +146,7 @@ public class Dispatcher {
 
     /**
      * Посылает сообщение указанному в нём адресату, либо,
-     * если адресат не указан, всем актуальным участникам.
+     * если адресат не указан, всем актуальным участникам (всем явно прописав получателя).
      * @param msg посылаемое сообщение.
      */
     public void send(Message msg) {

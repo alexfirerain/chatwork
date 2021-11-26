@@ -88,6 +88,7 @@ public class Client {
     }
 
     public void setRegistered() {
+        System.out.println("set as registered");
         isRegistered = true;
     }
 

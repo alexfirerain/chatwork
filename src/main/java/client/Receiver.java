@@ -33,7 +33,9 @@ public class Receiver extends Thread {
 
 
             } catch (IOException | ClassNotFoundException e) {
+                System.out.println("getting message error: " + e.getMessage());
                 e.printStackTrace();
+                break;
             }
         }
     }
