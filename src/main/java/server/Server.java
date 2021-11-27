@@ -4,6 +4,8 @@ import common.Configurator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
@@ -83,9 +85,20 @@ public class Server {
         running = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (running) {
-                Socket socket = serverSocket.accept();
-                System.out.println("connected with " + socket.getRemoteSocketAddress()); // monitor
-                connections.execute(new Connection(this, socket));
+                try (Socket socket = serverSocket.accept();
+                     ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+                     ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
+
+                    System.out.println("connected with " + socket.getRemoteSocketAddress());    // monitor
+
+                    Connection connection = new Connection(this, socket, ois, oos);
+                    connections.execute(connection);
+
+                } catch (IOException e) {
+                    String error = "Ошибка получения потоков: " + e.getMessage();
+                    System.out.println(error);
+                    e.printStackTrace();
+                }
             }
         } catch (IOException e) {
             String error = "Непредвиденное завершение работы: " + e.getMessage();

@@ -33,13 +33,13 @@ public class Connection implements Runnable, AutoCloseable {
      * @param socket собственно соединение с конкретным удалённым адресом.
 // * @throws IOException при ошибках получения входящего или исходящего потока.
      */
-    public Connection(Server host, Socket socket) throws IOException {
+    public Connection(Server host, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
         System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
-        messageReceiver = new ObjectInputStream(socket.getInputStream());
-        messageSender = new ObjectOutputStream(socket.getOutputStream());
+        messageReceiver = ois;
+        messageSender = oos;
         System.out.println("the Connection set: " + this.host + " / " + dispatcher + " / " + socket.getRemoteSocketAddress()); // monitor
     }
 

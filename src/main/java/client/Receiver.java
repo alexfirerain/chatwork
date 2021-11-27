@@ -22,18 +22,20 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
+        System.out.println("Receiver started");
         while (!client.getSocket().isClosed() && !interrupted()) {
             try (ether) {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
-                if (Objects.equals(gotMessage.getAddressee(), client.getUserName()))
+
+                if (!client.isRegistered() &&
+                        Objects.equals(
+                                gotMessage.getAddressee(), client.getUserName()))
                     client.setRegistered();
 
-
-
-
             } catch (IOException | ClassNotFoundException e) {
-                System.out.println("getting message error: " + e.getMessage());
+                String error = "getting message error: " + e.getMessage();
+                System.out.println(error);
                 e.printStackTrace();
                 break;
             }

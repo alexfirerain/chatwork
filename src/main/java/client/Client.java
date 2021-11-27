@@ -87,6 +87,7 @@ public class Client {
             nameToUse = usersInput.nextLine();
         }
         userName = nameToUse;
+        System.out.println("name prepared: " + userName);       // monitor
     }
 
     public void setRegistered() {
@@ -113,6 +114,8 @@ public class Client {
         try (Socket connection = new Socket(HUB, PORT);
              ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream());
              ObjectOutputStream messagesOut = new ObjectOutputStream(connection.getOutputStream())) {
+
+            System.out.println("about to connect");         // monitor
 
             socket = connection;
             Receiver receiver = new Receiver(this, messagesIn);
@@ -169,5 +172,9 @@ public class Client {
 
     public Socket getSocket() {
         return socket;
+    }
+
+    public boolean isRegistered() {
+        return isRegistered;
     }
 }

@@ -79,12 +79,12 @@ public class Message implements Serializable {
         MessageType type = TXT_MSG;
         String addressee = null;
         String message = inputText;
-        int delimiterIndex = inputText.indexOf(" ");
+        int spaceIndex = inputText.indexOf(" ");
 
         if (inputText.startsWith("@")) {
             type = PRIVATE_MSG;
-            addressee = inputText.substring(1, delimiterIndex);
-            message = inputText.substring(delimiterIndex + 1);
+            addressee = inputText.substring(1, spaceIndex);
+            message = inputText.substring(spaceIndex + 1);      // TODO: предусмотреть пустое сообщение
         }
         if (inputText.startsWith("/")) {
             message = null;
@@ -92,8 +92,8 @@ public class Message implements Serializable {
             switch (command) {
                 case "reg" -> {
                     type = REG_REQUEST;
-                    sender = inputText.substring(delimiterIndex + 1).strip();
-                    if (sender.length() > Server.nickLengthLimit)
+                    sender = inputText.substring(spaceIndex + 1).strip();
+                    if (sender.length() > Server.nickLengthLimit)               // TODO: перенести в сервер (?)
                         sender = sender.substring(0, Server.nickLengthLimit);
                 }
                 case "users" -> type = LIST_REQUEST;
