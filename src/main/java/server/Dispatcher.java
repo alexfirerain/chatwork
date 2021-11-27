@@ -3,6 +3,8 @@ package server;
 import common.Message;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -112,8 +114,11 @@ public class Dispatcher {
         Connection channel = users.get(username);
         if (channel != null) {
             try {
-                channel.send(message);
+                channel.send(message, channel.getMessageSender());
             } catch (IOException e) {
+                String error = String.format(
+                        "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
+                System.out.println(error);
                 e.printStackTrace();
             }
         } else {
@@ -171,13 +176,15 @@ public class Dispatcher {
      *                   и привязываемое к полученному от него имени.
      */
     public void registerUser(Connection connection) {
-        System.out.println("entering registering"); // monitor
+        System.out.println("entering registering");              // monitor
+        ObjectOutputStream out = connection.getMessageSender();
+        ObjectInputStream in = connection.getMessageReceiver();
         try {
-            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
-            String sender = connection.getMessage().getSender();
+            connection.send(Message.fromServer(PROMPT_TEXT), out);   // не нужно, коль скоро провоцирует подключение клиент!
+            String sender = connection.getMessage(in).getSender();
             while(!addUser(sender, connection)) {
-                connection.send(Message.fromServer(WARN_TXT));
-                sender = connection.getMessage().getSender();
+                connection.send(Message.fromServer(WARN_TXT), out);
+                sender = connection.getMessage(in).getSender();
             }
             connection.exitPrivateMode();
             broadcast(Message.fromServer(greeting(sender)));
@@ -230,8 +237,8 @@ public class Dispatcher {
             String error = "Не удалось отключить участника: " + username;
             System.out.println(error);
             e.printStackTrace();
+            return false;
         }
-        return false;
     }
 
     /**
@@ -247,7 +254,8 @@ public class Dispatcher {
         send(Message.fromServer(PASSWORD_REQUEST, requesting));
         byte[] gotPassword = new byte[0];
         try {
-            gotPassword = invoker.getMessage().getMessage().getBytes();
+            gotPassword = invoker.getMessage(invoker.getMessageReceiver())
+                    .getMessage().getBytes();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

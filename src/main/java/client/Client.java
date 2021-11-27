@@ -118,9 +118,14 @@ public class Client {
             Receiver receiver = new Receiver(this, messagesIn);
             receiver.start();
             messagesOut.writeObject(Message.registering(userName));
-            while (!isRegistered) {
+            while (!connection.isClosed()) {
                 String inputName = usersInput.nextLine();
-                messagesOut.writeObject(Message.registering(inputName));
+                if (!isRegistered) {
+                    messagesOut.writeObject(Message.registering(inputName));
+                } else {
+                    messagesOut.writeObject(Message.fromClientInput(inputName, userName));
+                    break;
+                }
             }
             saveSettings();
             while (!connection.isClosed()) {

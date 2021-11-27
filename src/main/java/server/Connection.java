@@ -14,8 +14,17 @@ public class Connection implements Runnable, AutoCloseable {
     private final Server host;
     private final Dispatcher dispatcher;
     private final Socket socket;
-//    private final ObjectInputStream messageReceiver;
-//    private final ObjectOutputStream messageSender;
+
+    public ObjectInputStream getMessageReceiver() {
+        return messageReceiver;
+    }
+
+    public ObjectOutputStream getMessageSender() {
+        return messageSender;
+    }
+
+    private final ObjectInputStream messageReceiver;
+    private final ObjectOutputStream messageSender;
     private boolean privateMode = true;
 
     /**
@@ -24,18 +33,13 @@ public class Connection implements Runnable, AutoCloseable {
      * @param socket собственно соединение с конкретным удалённым адресом.
 // * @throws IOException при ошибках получения входящего или исходящего потока.
      */
-    public Connection(Server host, Socket socket) {
+    public Connection(Server host, Socket socket) throws IOException {
         System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
-//        try {
-//            messageReceiver = new ObjectInputStream(socket.getInputStream());
-//            messageSender = new ObjectOutputStream(socket.getOutputStream());
-//        } catch (IOException e) {
-//            System.out.println("gettingStreams error:");
-//            e.printStackTrace();
-//        }
+        messageReceiver = new ObjectInputStream(socket.getInputStream());
+        messageSender = new ObjectOutputStream(socket.getOutputStream());
         System.out.println("the Connection set: " + this.host + " / " + dispatcher + " / " + socket.getRemoteSocketAddress()); // monitor
     }
 
@@ -68,7 +72,7 @@ public class Connection implements Runnable, AutoCloseable {
             if (!privateMode) {
                 // иначе: считываем входящие сообщения и передаём их серверу на обработку
                 try {
-                    operateOn(getMessage());
+                    operateOn(getMessage(messageReceiver));
                 } catch (IOException | ClassNotFoundException e) {
                     String error = "Ошибка обработки сообщения: " + e.getMessage();
                     System.out.println(error);
@@ -84,9 +88,9 @@ public class Connection implements Runnable, AutoCloseable {
      * @param message сообщение, которое отсылается.
      * @throws IOException при невозможности записать в поток.
      */
-    public void send(Message message) throws IOException {
-        ObjectOutputStream messageSender = new ObjectOutputStream(socket.getOutputStream());
-        messageSender.writeObject(message);
+    public void send(Message message, ObjectOutputStream out) throws IOException {
+        out.writeObject(message);
+        out.flush();
     }
 
     /**
@@ -95,9 +99,8 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
-    public Message getMessage() throws IOException, ClassNotFoundException {
-        ObjectInputStream messageReceiver = new ObjectInputStream(socket.getInputStream());
-        return (Message) messageReceiver.readObject();
+    public Message getMessage(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        return (Message) in.readObject();
     }
 
     /**

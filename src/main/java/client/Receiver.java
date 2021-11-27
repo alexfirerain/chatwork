@@ -23,7 +23,7 @@ public class Receiver extends Thread {
     @Override
     public void run() {
         while (!client.getSocket().isClosed() && !interrupted()) {
-            try {
+            try (ether) {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
                 if (Objects.equals(gotMessage.getAddressee(), client.getUserName()))
