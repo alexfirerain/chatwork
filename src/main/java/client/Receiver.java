@@ -15,9 +15,11 @@ public class Receiver extends Thread {
     private final Client client;
     private final ObjectInputStream ether;
 
-    public Receiver(Client client, ObjectInputStream ether) {
+    public Receiver(Client client
+//            , ObjectInputStream ether
+    ) throws IOException {
         this.client = client;
-        this.ether = ether;
+        ether = new ObjectInputStream(client.getSocket().getInputStream());
         setDaemon(true);
     }
 

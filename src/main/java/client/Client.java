@@ -125,7 +125,9 @@ public class Client {
             System.out.println("about to connect");         // monitor
 
             socket = connection;
-            Receiver receiver = new Receiver(this, messagesIn);
+            Receiver receiver = new Receiver(this
+//                    , messagesIn
+            );
             receiver.start();
 
             // запрос регистрации подготовленного имени
@@ -179,6 +181,7 @@ public class Client {
         settings.put("PORT", String.valueOf(PORT));
         settings.put("NAME", userName);
         Configurator.writeSettings(settings, settingFile);
+        System.out.println("name in settings saved");
     }
 
     public Socket getSocket() {

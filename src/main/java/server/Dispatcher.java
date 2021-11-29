@@ -183,7 +183,7 @@ public class Dispatcher {
         ObjectOutputStream out = connection.getMessageSender();
         ObjectInputStream in = connection.getMessageReceiver();
         try {
-            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+//            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.getMessage().getSender();
             while(!addUser(sender, connection)) {
                 connection.send(Message.fromServer(WARN_TXT));
