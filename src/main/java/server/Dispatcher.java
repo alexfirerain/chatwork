@@ -51,10 +51,13 @@ public class Dispatcher {
     public boolean addUser(String userName, Connection connection) {
         if (userName == null || userName.isBlank()
                 || connection == null || connection.isClosed()
-                || users.containsKey(userName))
+                || users.containsKey(userName)) {
+            System.out.println("зарегистрированы: " + getUsers());      // monitor
             return false;
+        }
 
         users.put(userName, connection);
+        System.out.println("зарегистрированы: " + getUsers());      // monitor
         return true;
     }
 
@@ -114,7 +117,7 @@ public class Dispatcher {
         Connection channel = users.get(username);
         if (channel != null) {
             try {
-                channel.send(message, channel.getMessageSender());
+                channel.send(message);
             } catch (IOException e) {
                 String error = String.format(
                         "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
@@ -180,11 +183,11 @@ public class Dispatcher {
         ObjectOutputStream out = connection.getMessageSender();
         ObjectInputStream in = connection.getMessageReceiver();
         try {
-            connection.send(Message.fromServer(PROMPT_TEXT), out);   // не нужно, коль скоро провоцирует подключение клиент!
-            String sender = connection.getMessage(in).getSender();
+            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+            String sender = connection.getMessage().getSender();
             while(!addUser(sender, connection)) {
-                connection.send(Message.fromServer(WARN_TXT), out);
-                sender = connection.getMessage(in).getSender();
+                connection.send(Message.fromServer(WARN_TXT));
+                sender = connection.getMessage().getSender();
             }
             connection.exitPrivateMode();
             broadcast(Message.fromServer(greeting(sender)));
@@ -254,7 +257,7 @@ public class Dispatcher {
         send(Message.fromServer(PASSWORD_REQUEST, requesting));
         byte[] gotPassword = new byte[0];
         try {
-            gotPassword = invoker.getMessage(invoker.getMessageReceiver())
+            gotPassword = invoker.getMessage()
                     .getMessage().getBytes();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();

@@ -72,7 +72,7 @@ public class Connection implements Runnable, AutoCloseable {
             if (!privateMode) {
                 // иначе: считываем входящие сообщения и передаём их серверу на обработку
                 try {
-                    operateOn(getMessage(messageReceiver));
+                    operateOn(getMessage());
                 } catch (IOException | ClassNotFoundException e) {
                     String error = "Ошибка обработки сообщения: " + e.getMessage();
                     System.out.println(error);
@@ -88,9 +88,9 @@ public class Connection implements Runnable, AutoCloseable {
      * @param message сообщение, которое отсылается.
      * @throws IOException при невозможности записать в поток.
      */
-    public void send(Message message, ObjectOutputStream out) throws IOException {
-        out.writeObject(message);
-        out.flush();
+    public void send(Message message) throws IOException {
+        messageSender.writeObject(message);
+        messageSender.flush();
     }
 
     /**
@@ -99,8 +99,8 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
-    public Message getMessage(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        return (Message) in.readObject();
+    public Message getMessage() throws IOException, ClassNotFoundException {
+        return (Message) messageReceiver.readObject();
     }
 
     /**

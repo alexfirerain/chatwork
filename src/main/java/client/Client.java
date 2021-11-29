@@ -68,6 +68,10 @@ public class Client {
         return Path.of(filePath);
     }
 
+    /**
+     * Подготавливает пользователя к подключению: приветствует, затем интересуется,
+     * какое имя использовать для первой попытки регистрации на чат-сервере.
+     */
     private void enterUser() {
         System.out.println("Добро пожаловать в программу для общения!");
         // Определение имени для попытки автоматической регистрации:
@@ -87,9 +91,12 @@ public class Client {
             nameToUse = usersInput.nextLine();
         }
         userName = nameToUse;
-        System.out.println("name prepared: " + userName);       // monitor
     }
 
+    /**
+     * Выставляет в клиенте флажок, что установленное имя пользователя зарегистрировано
+     * на чат-сервере.
+     */
     public void setRegistered() {
         System.out.println(this + " set as registered");    // monitor
         isRegistered = true;
@@ -112,15 +119,19 @@ public class Client {
 
     public void connect() {
         try (Socket connection = new Socket(HUB, PORT);
-             ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream());
-             ObjectOutputStream messagesOut = new ObjectOutputStream(connection.getOutputStream())) {
+            ObjectOutputStream messagesOut = new ObjectOutputStream(connection.getOutputStream());
+            ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream())) {
 
             System.out.println("about to connect");         // monitor
 
             socket = connection;
             Receiver receiver = new Receiver(this, messagesIn);
             receiver.start();
+
+            // запрос регистрации подготовленного имени
             messagesOut.writeObject(Message.registering(userName));
+            messagesOut.flush();
+
             while (!connection.isClosed()) {
                 String inputName = usersInput.nextLine();
                 if (!isRegistered) {
