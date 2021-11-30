@@ -73,7 +73,7 @@ public class Client {
     private void enterUser() {
         System.out.println("Добро пожаловать в программу для общения!");
         // Определение имени для попытки автоматической регистрации:
-        String nameToUse = userName;
+        String nameToUse = getUserName();
         if (!isAcceptableName(nameToUse)) {
             System.out.println("Введите имя, под которым примете участие в беседе:");
             nameToUse = usersInput.nextLine();
@@ -88,7 +88,7 @@ public class Client {
             System.out.println("Введите имя для регистрации:");
             nameToUse = usersInput.nextLine();
         }
-        userName = nameToUse;
+        setUserName(nameToUse);
     }
 
     private Client(String hub, int port, String name, Path filePath) {
@@ -126,10 +126,10 @@ public class Client {
                 String inputName = usersInput.nextLine();
 
                 if (isRegistered) {
-                    messagesOut.writeObject(Message.fromClientInput(inputName, userName));
+                    send(inputName);
                 } else {
                     if (isAcceptableName(inputName))
-                        userName = inputName;
+                        setUserName(inputName);
                     registeringRequest();
                 }
             }
@@ -137,7 +137,7 @@ public class Client {
 
             // основной рабочий цикл
             while (!connection.isClosed()) {
-                messagesOut.writeObject(Message.fromClientInput(usersInput.nextLine(), userName));
+                send(usersInput.nextLine());
                 // TODO: сохранение в настройках нового имени в случае его смены по ходу общения
             }
 
@@ -153,6 +153,10 @@ public class Client {
             e.printStackTrace();
         }
 
+    }
+
+    private void send(String inputText) throws IOException {
+        messagesOut.writeObject(Message.fromClientInput(inputText, userName));
     }
 
     /**
@@ -175,7 +179,7 @@ public class Client {
 
     public void registeringRequest() throws IOException {
         messagesOut.writeObject(Message.registering(userName));
-        messagesOut.flush();
+//        messagesOut.flush();
     }
 
     /**
@@ -187,7 +191,7 @@ public class Client {
         settings.put("PORT", String.valueOf(PORT));
         settings.put("NAME", userName);
         Configurator.writeSettings(settings, settingFile);
-        System.out.println("name in settings saved");
+        System.out.println("name in settings saved");           // monitor
     }
 
     public String getUserName() {
@@ -205,5 +209,9 @@ public class Client {
      */
     private static boolean isAcceptableName(String name) {
         return name != null && !name.isBlank();
+    }
+
+    public void setUserName(String newName) {
+        userName = newName;
     }
 }

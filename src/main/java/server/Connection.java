@@ -97,7 +97,7 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void send(Message message) throws IOException {
         messageSender.writeObject(message);
-        messageSender.flush();
+//        messageSender.flush();
     }
 
     /**

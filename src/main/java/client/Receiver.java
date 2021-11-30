@@ -15,9 +15,7 @@ public class Receiver extends Thread {
     private final Client client;
     private final ObjectInputStream ether;
 
-    public Receiver(Client client
-//            , ObjectInputStream ether
-    ) throws IOException {
+    public Receiver(Client client) throws IOException {
         this.client = client;
         ether = new ObjectInputStream(client.getConnection().getInputStream());
         setDaemon(true);
@@ -27,13 +25,15 @@ public class Receiver extends Thread {
     public void run() {
         System.out.println("Receiver started");
         while (!client.getConnection().isClosed() && !interrupted()) {
-            try (ether) {
+            try {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
 
-                if (!client.isRegistered()
-                        && Objects.equals(gotMessage.getAddressee(), client.getUserName()))
+                if (!client.isRegistered() && client.getUserName().equals(gotMessage.getAddressee()))   // Приёмник запускается только когда userName уже != null
                     client.setRegistered();
+
+                if (client.isRegistered() && !client.getUserName().equals(gotMessage.getAddressee()))
+                    client.setUserName(gotMessage.getAddressee());
 
             } catch (IOException | ClassNotFoundException e) {
                 String error = "getting message error: " + e.getMessage();

@@ -5,6 +5,7 @@ import common.Message;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.SocketException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -117,6 +118,12 @@ public class Dispatcher {
         if (channel != null) {
             try {
                 channel.send(message);
+            } catch (SocketException e) {
+                String error = String.format(
+                        "Соединение с участником %s не доступно: %s", username, e.getMessage());
+                System.out.println(error);
+                e.printStackTrace();
+                goodbyeUser(username);
             } catch (IOException e) {
                 String error = String.format(
                         "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
