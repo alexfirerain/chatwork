@@ -19,14 +19,14 @@ public class Receiver extends Thread {
 //            , ObjectInputStream ether
     ) throws IOException {
         this.client = client;
-        ether = new ObjectInputStream(client.getSocket().getInputStream());
+        ether = new ObjectInputStream(client.getConnection().getInputStream());
         setDaemon(true);
     }
 
     @Override
     public void run() {
         System.out.println("Receiver started");
-        while (!client.getSocket().isClosed() && !interrupted()) {
+        while (!client.getConnection().isClosed() && !interrupted()) {
             try (ether) {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);

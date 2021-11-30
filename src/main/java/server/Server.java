@@ -85,13 +85,11 @@ public class Server {
         running = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (running) {
-                try (Socket socket = serverSocket.accept();
-                    ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+                try  {
+                    Socket socket = serverSocket.accept();
+                    System.out.println("connected with " + socket);    // monitor
 
-                    System.out.println(socket + " connected with " + socket.getRemoteSocketAddress());    // monitor
-
-                    Connection connection = new Connection(this, socket, ois, oos);
+                    Connection connection = new Connection(this, socket);
                     connections.execute(connection);
 
                 } catch (IOException e) {

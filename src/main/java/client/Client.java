@@ -5,6 +5,7 @@ import common.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -32,15 +33,12 @@ public class Client {
     private final String HUB;
     private final int PORT;
     private final Path settingFile;
-
-    public String getUserName() {
-        return userName;
-    }
-
     private String userName;
-    private volatile boolean isRegistered = false;
-    private Socket socket;
 
+    private Socket connection = null;
+    private ObjectOutputStream messagesOut = null;
+
+    private volatile boolean isRegistered = false;
 
     public static void main(String[] args) {
 
@@ -93,15 +91,6 @@ public class Client {
         userName = nameToUse;
     }
 
-    /**
-     * Выставляет в клиенте флажок, что установленное имя пользователя зарегистрировано
-     * на чат-сервере.
-     */
-    public void setRegistered() {
-        System.out.println(this + " set as registered");    // monitor
-        isRegistered = true;
-    }
-
     private Client(String hub, int port, String name, Path filePath) {
         HUB = hub;
         PORT = port;
@@ -118,32 +107,35 @@ public class Client {
     }
 
     public void connect() {
-        try (Socket connection = new Socket(HUB, PORT);
-            ObjectOutputStream messagesOut = new ObjectOutputStream(connection.getOutputStream());
-            ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream())) {
+        try {
+            connection = new Socket(HUB, PORT);
+            messagesOut = new ObjectOutputStream(connection.getOutputStream());
+//            ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream());
 
-            System.out.println("about to connect");         // monitor
+            System.out.println("connect: " + connection);    // monitor
 
-            socket = connection;
-            Receiver receiver = new Receiver(this
-//                    , messagesIn
-            );
+
+            // в самотекущем Приёмнике слушать входящие сообщения
+            Receiver receiver = new Receiver(this);
             receiver.start();
 
             // запрос регистрации подготовленного имени
-            messagesOut.writeObject(Message.registering(userName));
-            messagesOut.flush();
-
-            while (!connection.isClosed()) {
+            registeringRequest();
+            // цикл до подтверждения регистрации
+            while (!connection.isClosed() && !isRegistered) {
                 String inputName = usersInput.nextLine();
-                if (!isRegistered) {
-                    messagesOut.writeObject(Message.registering(inputName));
-                } else {
+
+                if (isRegistered) {
                     messagesOut.writeObject(Message.fromClientInput(inputName, userName));
-                    break;
+                } else {
+                    if (isAcceptableName(inputName))
+                        userName = inputName;
+                    registeringRequest();
                 }
             }
             saveSettings();
+
+            // основной рабочий цикл
             while (!connection.isClosed()) {
                 messagesOut.writeObject(Message.fromClientInput(usersInput.nextLine(), userName));
                 // TODO: сохранение в настройках нового имени в случае его смены по ходу общения
@@ -164,12 +156,26 @@ public class Client {
     }
 
     /**
-     * Сообщает, является ли указанная строка существующей и не пустой.
-     * @param name строка.
-     * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
+     * Выставляет в клиенте флажок, что установленное имя пользователя зарегистрировано
+     * на чат-сервере.
      */
-    private static boolean isAcceptableName(String name) {
-        return name != null && !name.isBlank();
+    public void setRegistered() {
+        System.out.println(this + " set as registered");    // monitor
+        isRegistered = true;
+    }
+
+    /**
+     * Показывает, является ли имя клиента зарегистрированным на чат-сервере.
+     * @return значение поля {@code isRegistered}, то есть {@code истинно},
+     * если вызывался {@code .setRegistered()}.
+     */
+    public boolean isRegistered() {
+        return isRegistered;
+    }
+
+    public void registeringRequest() throws IOException {
+        messagesOut.writeObject(Message.registering(userName));
+        messagesOut.flush();
     }
 
     /**
@@ -184,11 +190,20 @@ public class Client {
         System.out.println("name in settings saved");
     }
 
-    public Socket getSocket() {
-        return socket;
+    public String getUserName() {
+        return userName;
     }
 
-    public boolean isRegistered() {
-        return isRegistered;
+    public Socket getConnection() {
+        return connection;
+    }
+
+    /**
+     * Сообщает, является ли указанная строка существующей и не пустой.
+     * @param name строка.
+     * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
+     */
+    private static boolean isAcceptableName(String name) {
+        return name != null && !name.isBlank();
     }
 }
