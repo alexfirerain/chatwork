@@ -4,7 +4,8 @@ import common.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Objects;
+
+import static common.MessageType.SERVER_MSG;
 
 
 /**
@@ -35,25 +36,28 @@ public class Receiver extends Thread {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
 
-                String currentName = client.getUserName();
-                String gotName = gotMessage.getAddressee();
 
-                System.out.println(client + "'s name is " + currentName);      // monitor
-                System.out.println("the message is for " + gotName);      // monitor
+                if (gotMessage.getType() == SERVER_MSG){            // по адресату широковещательных сообщений судим о регистрированности
+                    String currentName = client.getUserName();
+                    String gotName = gotMessage.getAddressee();
 
-                if (!client.isRegistered() && currentName.equals(gotName))   // Приёмник запускается только когда userName уже != null
-                    client.setRegistered();
+                  System.out.println(client + "'s name is " + currentName);      // monitor
+                  System.out.println("the message is for " + (gotName == null ? "everybody" : gotName));      // monitor
 
-                if (client.isRegistered() && !currentName.equals(gotName)) {
-                    client.setUserName(gotName);
-                    client.saveSettings();
+                    if (!client.isRegistered() && currentName.equals(gotName))   // Приёмник запускается только когда userName уже != null
+                        client.setRegistered();
+
+                    if (client.isRegistered() && !currentName.equals(gotName)) {
+                        client.setUserName(gotName);
+                        client.saveSettings();
+                    }
                 }
 
             } catch (IOException | ClassNotFoundException e) {
                 String error = "ошибка получения сообщения: " + e.getMessage();
                 System.out.println(error);
                 e.printStackTrace();
-//                break;
+                break;
             }
         }
     }

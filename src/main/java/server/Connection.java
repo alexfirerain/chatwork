@@ -55,9 +55,9 @@ public class Connection implements Runnable, AutoCloseable {
             messageReceiver = new ObjectInputStream(socket.getInputStream());
 
             // регистрируем участника
-            System.out.println("the Connection started"); // monitor
+//            System.out.println("the Connection started"); // monitor
             dispatcher.registerUser(this);
-            System.out.println("registering passed"); // monitor
+//            System.out.println("registering passed"); // monitor
 
             // пока соединено
             while (!socket.isClosed()) {
@@ -65,7 +65,7 @@ public class Connection implements Runnable, AutoCloseable {
                 if (!privateMode) {
                     // иначе: считываем входящие сообщения и передаём их серверу на обработку
                     try {
-                        operateOn(getMessage());
+                        operateOn(receiveMessage());
                     } catch (IOException | ClassNotFoundException e) {
                         String error = "Ошибка обработки сообщения: " + e.getMessage();
                         System.out.println(error);
@@ -95,7 +95,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @param message сообщение, которое отсылается.
      * @throws IOException при невозможности записать в поток.
      */
-    public void send(Message message) throws IOException {
+    public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
 //        messageSender.flush();
     }
@@ -106,7 +106,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
-    public Message getMessage() throws IOException, ClassNotFoundException {
+    public Message receiveMessage() throws IOException, ClassNotFoundException {
         Message message = (Message) messageReceiver.readObject();
         System.out.println("message got: [" + message + "]");       // monitor
         return message;
@@ -121,7 +121,7 @@ public class Connection implements Runnable, AutoCloseable {
 
         switch (gotMessage.getType()) {
             case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации?
-            case TXT_MSG -> dispatcher.broadcastFrom(gotMessage);
+            case TXT_MSG -> dispatcher.forward(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
             case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
             case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
@@ -145,7 +145,7 @@ public class Connection implements Runnable, AutoCloseable {
     /**
      * Сообщает, закрыт ли сокетный канал.
      * @return {@code истинно}, если сокет был открыт, а теперь закрыт;
-     * {@code ложно}, если сокет открыт, либо ещё не открывался.
+     * {@code ложно}, если сокет открыт либо ещё не открывался.
      */
     public boolean isClosed() {
         return socket.isClosed();

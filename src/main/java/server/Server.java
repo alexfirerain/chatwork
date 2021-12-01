@@ -98,12 +98,13 @@ public class Server {
                     e.printStackTrace();
                 }
             }
+            users.closeSession();
         } catch (IOException e) {
             String error = "Непредвиденное завершение работы: " + e.getMessage();
             System.out.println(error);
             e.printStackTrace();
         }
-        users.closeSession();
+
         connections.shutdownNow();
     }
 

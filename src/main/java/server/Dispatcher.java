@@ -3,8 +3,6 @@ package server;
 import common.Message;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.SocketException;
 import java.util.HashSet;
 import java.util.Map;
@@ -117,7 +115,7 @@ public class Dispatcher {
         Connection channel = users.get(username);
         if (channel != null) {
             try {
-                channel.send(message);
+                channel.sendMessage(message);
             } catch (SocketException e) {
                 String error = String.format(
                         "Соединение с участником %s не доступно: %s", username, e.getMessage());
@@ -175,7 +173,7 @@ public class Dispatcher {
      * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
      * @param message рассылаемое сообщение.
      */
-    public void broadcastFrom(Message message) {
+    public void forward(Message message) {
         sendToAllBut(message, message.getSender());
     }
 
@@ -185,15 +183,15 @@ public class Dispatcher {
      *                   и привязываемое к полученному от него имени.
      */
     public void registerUser(Connection connection) {
-        System.out.println("entering registering");              // monitor
+//        System.out.println("entering registering");              // monitor
 //        ObjectOutputStream out = connection.getMessageSender();
 //        ObjectInputStream in = connection.getMessageReceiver();
         try {
 //            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
-            String sender = connection.getMessage().getSender();
+            String sender = connection.receiveMessage().getSender();
             while(!addUser(sender, connection)) {
-                connection.send(Message.fromServer(WARN_TXT));
-                sender = connection.getMessage().getSender();
+                connection.sendMessage(Message.fromServer(WARN_TXT));
+                sender = connection.receiveMessage().getSender();
             }
             connection.exitPrivateMode();
             broadcast(Message.fromServer(greeting(sender)));
@@ -263,7 +261,7 @@ public class Dispatcher {
         send(Message.fromServer(PASSWORD_REQUEST, requesting));
         byte[] gotPassword = new byte[0];
         try {
-            gotPassword = invoker.getMessage()
+            gotPassword = invoker.receiveMessage()
                     .getMessage().getBytes();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
