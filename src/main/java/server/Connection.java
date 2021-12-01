@@ -14,17 +14,8 @@ public class Connection implements Runnable, AutoCloseable {
     private final Server host;
     private final Dispatcher dispatcher;
     private final Socket socket;
-
-    public ObjectInputStream getMessageReceiver() {
-        return messageReceiver;
-    }
-
-    public ObjectOutputStream getMessageSender() {
-        return messageSender;
-    }
-
-    private final ObjectInputStream messageReceiver;
-    private final ObjectOutputStream messageSender;
+    private ObjectInputStream messageReceiver;
+    private ObjectOutputStream messageSender;
     private boolean privateMode = true;
 
     /**
@@ -33,14 +24,12 @@ public class Connection implements Runnable, AutoCloseable {
      * @param socket собственно соединение с конкретным удалённым адресом.
 // * @throws IOException при ошибках получения входящего или исходящего потока.
      */
-    public Connection(Server host, Socket socket) throws IOException {
+    public Connection(Server host, Socket socket) {
         System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
-        messageReceiver = new ObjectInputStream(socket.getInputStream());
-        messageSender = new ObjectOutputStream(socket.getOutputStream());
-        System.out.println("the Connection set: " + this.host + " / " + dispatcher + " / " + socket.getRemoteSocketAddress()); // monitor
+        System.out.println("the Connection set: " + this.host + " - " + dispatcher + " - " + socket); // monitor
     }
 
     public void enterPrivateMode() {
@@ -61,26 +50,44 @@ public class Connection implements Runnable, AutoCloseable {
      */
     @Override
     public void run() {
-        // регистрируем участника
-        System.out.println("the Connection started"); // monitor
-        dispatcher.registerUser(this);
-        System.out.println("registering passed"); // monitor
+        try (socket) {
+            messageSender = new ObjectOutputStream(socket.getOutputStream());
+            messageReceiver = new ObjectInputStream(socket.getInputStream());
 
-        // пока соединено
-        while (!socket.isClosed()) {
-            // если соединение в приватном режиме, читать из него сообщения будет сам Диспетчер
-            if (!privateMode) {
-                // иначе: считываем входящие сообщения и передаём их серверу на обработку
-                try {
-                    operateOn(getMessage(messageReceiver));
-                } catch (IOException | ClassNotFoundException e) {
-                    String error = "Ошибка обработки сообщения: " + e.getMessage();
-                    System.out.println(error);
-                    e.printStackTrace();
-                    break;
+            // регистрируем участника
+//            System.out.println("the Connection started"); // monitor
+            dispatcher.registerUser(this);
+//            System.out.println("registering passed"); // monitor
+
+            // пока соединено
+            while (!socket.isClosed()) {
+                // если соединение в приватном режиме, читать из него сообщения будет сам Диспетчер
+                if (!privateMode) {
+                    // иначе: считываем входящие сообщения и передаём их серверу на обработку
+                    try {
+                        operateOn(receiveMessage());
+                    } catch (IOException | ClassNotFoundException e) {
+                        String error = "Ошибка обработки сообщения: " + e.getMessage();
+                        System.out.println(error);
+                        e.printStackTrace();
+                        break;
+                    }
                 }
             }
+
+        } catch (IOException e) {
+            String error = "ошибка получения потоков: " + e.getMessage();
+            System.out.println(error);
+            e.printStackTrace();
         }
+//        finally {
+//            try {
+//                close();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+
     }
 
     /**
@@ -88,9 +95,9 @@ public class Connection implements Runnable, AutoCloseable {
      * @param message сообщение, которое отсылается.
      * @throws IOException при невозможности записать в поток.
      */
-    public void send(Message message, ObjectOutputStream out) throws IOException {
-        out.writeObject(message);
-        out.flush();
+    public void sendMessage(Message message) throws IOException {
+        messageSender.writeObject(message);
+//        messageSender.flush();
     }
 
     /**
@@ -99,8 +106,10 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
-    public Message getMessage(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        return (Message) in.readObject();
+    public Message receiveMessage() throws IOException, ClassNotFoundException {
+        Message message = (Message) messageReceiver.readObject();
+        System.out.println("message got: [" + message + "]");       // monitor
+        return message;
     }
 
     /**
@@ -112,7 +121,7 @@ public class Connection implements Runnable, AutoCloseable {
 
         switch (gotMessage.getType()) {
             case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации?
-            case TXT_MSG -> dispatcher.broadcastFrom(gotMessage);
+            case TXT_MSG -> dispatcher.forward(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
             case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
             case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
@@ -136,7 +145,7 @@ public class Connection implements Runnable, AutoCloseable {
     /**
      * Сообщает, закрыт ли сокетный канал.
      * @return {@code истинно}, если сокет был открыт, а теперь закрыт;
-     * {@code ложно}, если сокет открыт, либо ещё не открывался.
+     * {@code ложно}, если сокет открыт либо ещё не открывался.
      */
     public boolean isClosed() {
         return socket.isClosed();
