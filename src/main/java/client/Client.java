@@ -54,6 +54,15 @@ public class Client {
 
     }
 
+    /**
+     * Определяет путь к файлу настроек, который должен использоваться.<p>
+     * В качестве аргумента предполагается массив аргументов, с которым запущена программа.
+     * Если программа запущена без аргументов, или первый аргумент не является адресом существующего файла,
+     * запрашивает у пользователя ввод адреса, пока он не окажется именем существующего файла.
+     * При этом является ли указанный файл действительно корректным файлом настроек – не проверяется.
+     * @param args массив строковых аргументов (переданный программе при запуске).
+     * @return путь к файлу, полученный из аргумента командной строки или из ввода пользователя.
+     */
     private static Path identifySource(String[] args) {
         String filePath;
         do if (args.length >= 1 && Files.isRegularFile(Path.of(args[0]))) {
@@ -125,6 +134,8 @@ public class Client {
             while (!connection.isClosed() && !isRegistered) {
                 String inputName = usersInput.nextLine();
 
+                // если к моменту ввода пользователя регистрация уже состоялась,
+                // введённое отправляется как обычное сообщение
                 if (isRegistered) {
                     send(inputName);
                 } else {
@@ -138,7 +149,7 @@ public class Client {
             // основной рабочий цикл
             while (!connection.isClosed()) {
                 send(usersInput.nextLine());
-                // TODO: сохранение в настройках нового имени в случае его смены по ходу общения
+                // TODO: сохранение в настройках нового имени в случае его смены по ходу общения // ?
             }
 
             receiver.interrupt();
@@ -155,6 +166,12 @@ public class Client {
 
     }
 
+    /**
+     * Формирует из полученного текста новое сообщение
+     * и засылает его на чат-сервер.
+     * @param inputText введённый пользователем текст.
+     * @throws IOException при ошибке исходящего потока.
+     */
     private void send(String inputText) throws IOException {
         messagesOut.writeObject(Message.fromClientInput(inputText, userName));
     }
@@ -164,7 +181,7 @@ public class Client {
      * на чат-сервере.
      */
     public void setRegistered() {
-        System.out.println(this + " set as registered");    // monitor
+        System.out.println(this + " set as registered with " + userName);    // monitor
         isRegistered = true;
     }
 
@@ -177,6 +194,11 @@ public class Client {
         return isRegistered;
     }
 
+    /**
+     * Отправляет на сервер запрос регистрации того имени,
+     * которое текущее в поле {@code userName}.
+     * @throws IOException при ошибке исходящего потока.
+     */
     public void registeringRequest() throws IOException {
         messagesOut.writeObject(Message.registering(userName));
 //        messagesOut.flush();
@@ -185,21 +207,14 @@ public class Client {
     /**
      * Сбрасывает текущие настройки в связанный файл настроек.
      */
-    private void saveSettings() {
+    void saveSettings() {
         Map<String, String> settings = new HashMap<>();
         settings.put("HUB", HUB);
         settings.put("PORT", String.valueOf(PORT));
-        settings.put("NAME", userName);
+        if (userName != null)
+            settings.put("NAME", userName);
         Configurator.writeSettings(settings, settingFile);
         System.out.println("name in settings saved");           // monitor
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public Socket getConnection() {
-        return connection;
     }
 
     /**
@@ -211,7 +226,19 @@ public class Client {
         return name != null && !name.isBlank();
     }
 
+    /**
+     * Устанавливает имя пользователя, используемое для исходящих сообщений.
+     * @param newName устанавливаемое имя.
+     */
     public void setUserName(String newName) {
         userName = newName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public Socket getConnection() {
+        return connection;
     }
 }

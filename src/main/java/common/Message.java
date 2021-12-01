@@ -28,14 +28,19 @@ public class Message implements Serializable {
      * которое собирается зарегистрировать, переходит из регистрационного режима в основной.
      */
     private String addressee;
-    public void setAddressee(String addressee) {
-        this.addressee = addressee;
-        System.out.println("Receiver of the message is set");   // monitor
-    }
     /**
      * сообщаемая в сообщении строка
      */
     final private String message;
+
+    /**
+     * Устанавливает получателя (используется для широковещаетльной рассылки).
+     * @param addressee устанавливаемое имя получателя.
+     */
+    public void setAddressee(String addressee) {
+        this.addressee = addressee;
+        System.out.println("Receiver of the message is set");   // monitor
+    }
 
     private Message(MessageType type, String sender, String addressee, String message) {
         this.type = type;
@@ -68,7 +73,7 @@ public class Message implements Serializable {
      * по условным знакам в начале введённого пользователем текста:
      * <ul>
      * <li>"@имя_получателя " = персональное сообщение</li>
-     * <li>"/reg " = запрос от участника на смену имени</li>
+     * <li>"/reg новое_имя" = запрос от участника на смену имени</li>
      * <li>"/users " = запрос списка участников беседы</li>
      * <li>"/exit " = запрос на выход из беседы</li>
      * <li>"/terminate " = запрос на выключение сервера</li>
@@ -79,27 +84,34 @@ public class Message implements Serializable {
         MessageType type = TXT_MSG;
         String addressee = null;
         String message = inputText;
+        if (message.length() < 2)
+            return new Message(type, sender, null, message);
         int spaceIndex = inputText.indexOf(" ");
+        if (spaceIndex <= 0)
+            spaceIndex = inputText.length();
+        String keyword = inputText.substring(1, spaceIndex);
 
         if (inputText.startsWith("@")) {
             type = PRIVATE_MSG;
-            addressee = inputText.substring(1, spaceIndex);
-            message = inputText.substring(spaceIndex + 1);      // TODO: предусмотреть пустое сообщение
+            addressee = keyword;
+            message = spaceIndex < inputText.length() ? inputText.substring(spaceIndex + 1) : "";
         }
         if (inputText.startsWith("/")) {
             message = null;
-            String command = inputText.substring(1, inputText.indexOf(" "));
-            switch (command) {
+            switch (keyword) {
                 case "reg" -> {
                     type = REG_REQUEST;
-                    sender = inputText.substring(spaceIndex + 1).strip();
+                    sender = spaceIndex < inputText.length() ? inputText.substring(spaceIndex + 1).strip() : "";
                     if (sender.length() > Server.nickLengthLimit)               // TODO: перенести в сервер (?)
                         sender = sender.substring(0, Server.nickLengthLimit);
                 }
                 case "users" -> type = LIST_REQUEST;
                 case "exit" -> type = EXIT_REQUEST;
                 case "terminate" -> type = SHUT_REQUEST;
-                default -> message = inputText;
+                default -> {
+                    type = TXT_MSG;
+                    message = inputText;
+                }
             }
         }
         return new Message(type, sender, addressee, message);
