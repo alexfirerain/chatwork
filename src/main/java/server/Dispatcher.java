@@ -182,10 +182,7 @@ public class Dispatcher {
      * @param connection соединение, используемое для общения с пользователем (в приватном режиме)
      *                   и привязываемое к полученному от него имени.
      */
-    public void registerUser(Connection connection) {
-//        System.out.println("entering registering");              // monitor
-//        ObjectOutputStream out = connection.getMessageSender();
-//        ObjectInputStream in = connection.getMessageReceiver();
+    public void registerUser(Connection connection) {       // TODO: поскольку блокирующее, перенести в Соединение!
         try {
 //            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.receiveMessage().getSender();

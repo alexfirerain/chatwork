@@ -1,5 +1,6 @@
 package server;
 
+import common.Logger;
 import common.Message;
 
 import java.io.IOException;
@@ -15,6 +16,8 @@ public class Connection implements Runnable, AutoCloseable {
     private final Server host;
     private final Dispatcher dispatcher;
     private final Socket socket;
+    private final Logger logger;
+
     private ObjectInputStream messageReceiver;
     private ObjectOutputStream messageSender;
     private boolean privateMode = true;
@@ -26,11 +29,10 @@ public class Connection implements Runnable, AutoCloseable {
 // * @throws IOException при ошибках получения входящего или исходящего потока.
      */
     public Connection(Server host, Socket socket) {
-        System.out.println("initializing new Connection");                  //monitor
         this.host = host;
         dispatcher = host.users;
         this.socket = socket;
-        System.out.println("the Connection set: " + this.host + " - " + dispatcher + " - " + socket); // monitor
+        logger = host.logger;
     }
 
     public void enterPrivateMode() {
@@ -68,11 +70,13 @@ public class Connection implements Runnable, AutoCloseable {
                     } catch (SocketException e) {
                         String error = "Соединение закрыто: " + e.getMessage();
                         System.out.println(error);
+                        logger.logEvent(error);
                         e.printStackTrace();
                         socket.close();
                     } catch (IOException | ClassNotFoundException e) {
                         String error = "Ошибка обработки сообщения: " + e.getMessage();
                         System.out.println(error);
+                        logger.logEvent(error);
                         e.printStackTrace();
                         break;
                     }
@@ -82,6 +86,7 @@ public class Connection implements Runnable, AutoCloseable {
         } catch (IOException e) {
             String error = "ошибка получения потоков: " + e.getMessage();
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
         }
 //        finally {
@@ -101,7 +106,6 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
-//        messageSender.flush();
     }
 
     /**
@@ -111,7 +115,6 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
-        //        System.out.println("message got: [" + message + "]");       // monitor
         return (Message) messageReceiver.readObject();
     }
 
@@ -139,7 +142,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @return  серверное сообщение со списком подключённых участников.
      */
     private Message usersListMessage(String requesting) {
-        StringBuilder report = new StringBuilder("Подключено участников: " + dispatcher.getUsers().size());
+        StringBuilder report = new StringBuilder("Подключено участников: " + dispatcher.getUsers().size() + ":");
         for (String user : dispatcher.getUsers())
             report.append("\n").append(user);
         return Message.fromServer(report.toString(), requesting);

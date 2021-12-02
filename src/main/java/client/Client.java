@@ -1,6 +1,7 @@
 package client;
 
 import common.Configurator;
+import common.Logger;
 import common.Message;
 
 import java.io.IOException;
@@ -27,6 +28,10 @@ public class Client {
     private final String HUB;
     private final int PORT;
     private final Path settingFile;
+    private final boolean LOG_INBOUND;
+    private final boolean LOG_OUTBOUND;
+    private final boolean LOG_ERRORS;
+    final Logger logger;
 
     private String userName;
     private Socket connection = null;
@@ -110,6 +115,21 @@ public class Client {
         PORT = config.getIntProperty("PORT").orElse(port_default);
         userName = config.getStringProperty("NAME").orElse("");
         settingFile = filePath;
+
+        LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
+        LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
+        LOG_ERRORS = config.getBoolProperty("LOG_ERRORS").orElse(false);
+        logger = getLogger();
+        logger.setLogFile(isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
+    }
+
+    /**
+     * Вспомогательная функция, создающая экземпляр логера
+     * с установленными в конструкторе настройками логирования.
+     * @return экземпляр логера с описанными настройками.
+     */
+    private Logger getLogger() {
+        return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_ERRORS);
     }
 
     public void connect() {
@@ -117,14 +137,13 @@ public class Client {
             connection = new Socket(HUB, PORT);
             messagesOut = new ObjectOutputStream(connection.getOutputStream());
 
-//            System.out.println("connect: " + connection);    // monitor
-
             // в самотекущем Приёмнике слушать входящие сообщения
             Receiver receiver = new Receiver(this);
             receiver.start();
 
             // запрос регистрации подготовленного имени
             registeringRequest();
+
             // цикл до подтверждения регистрации
             while (!connection.isClosed() && !isRegistered) {
                 String inputName = usersInput.nextLine();
@@ -144,7 +163,6 @@ public class Client {
             // основной рабочий цикл
             while (!connection.isClosed()) {
                 send(usersInput.nextLine());
-                // TODO: сохранение в настройках нового имени в случае его смены по ходу общения // ?
             }
 
             receiver.interrupt();
@@ -152,10 +170,12 @@ public class Client {
         } catch (UnknownHostException e) {
             String error = "Хаб для подключения не обнаружен: " + e.getMessage();
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
         } catch (IOException e) {
             String error = "Ошибка соединения: " + e.getMessage();
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
         }
 
@@ -168,7 +188,9 @@ public class Client {
      * @throws IOException при ошибке исходящего потока.
      */
     private void send(String inputText) throws IOException {
-        messagesOut.writeObject(Message.fromClientInput(inputText, userName));
+        Message messageToSend = Message.fromClientInput(inputText, userName);
+        messagesOut.writeObject(messageToSend);
+        logger.logOutbound(messageToSend);
     }
 
     /**
@@ -176,7 +198,6 @@ public class Client {
      * на чат-сервере.
      */
     public void setRegistered() {
-//        System.out.println(this + " set as registered with " + userName);    // monitor
         isRegistered = true;
     }
 
@@ -207,8 +228,10 @@ public class Client {
         settings.put("PORT", String.valueOf(PORT));
         if (userName != null)
             settings.put("NAME", userName);
-        Configurator.writeSettings(settings, settingFile);
-//        System.out.println("name in settings saved");           // monitor
+        settings.put("LOG_INBOUND", String.valueOf(LOG_INBOUND));
+        settings.put("LOG_OUTBOUND", String.valueOf(LOG_OUTBOUND));
+        settings.put("LOG_ERRORS", String.valueOf(LOG_ERRORS));
+        Configurator.writeSettings(settings, settingFile);      // вывести обработку ошибки сюда, чтобы логировать?
     }
 
     /**
@@ -226,6 +249,7 @@ public class Client {
      */
     public void setUserName(String newName) {
         userName = newName;
+        logger.setLogFile(newName + ".log");            // TODO: проверку, чтоб в имени не было недопустимых символов
     }
 
     public String getUserName() {

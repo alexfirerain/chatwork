@@ -3,10 +3,7 @@ package server;
 import common.Configurator;
 import common.Logger;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
@@ -15,27 +12,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
-    private static final File settingsSource = new File("settings.ini");
-    public static final int nickLengthLimit = 15;
-
+    private static final Path settingsSource = Path.of("settings.ini");
     private static final int port_default = 7777;
     private static final byte[] password_default = "0000".getBytes();
     private static final String host_default = "localhost";
 
+    public static final int nickLengthLimit = 15;
+
     private final ExecutorService connections = Executors.newCachedThreadPool();
-
-    private final boolean LOG_INBOUND;
-    private final boolean LOG_OUTBOUND;
-    private final boolean LOG_TRANSFERRED;
-    private final boolean LOG_ERRORS;
-
-
     private final String HOST;
     private final int PORT;
     private final byte[] PASSWORD;
+    private final boolean LOG_INBOUND;
+    private final boolean LOG_OUTBOUND;
+    private final boolean LOG_TRANSFERRED;
+    private final boolean LOG_EVENTS;
+    final Logger logger;
 
     final Dispatcher users = new Dispatcher();
-    private final Logger logger;
 
     private boolean running;
 
@@ -49,7 +43,7 @@ public class Server {
         LOG_INBOUND = false;
         LOG_OUTBOUND = true;
         LOG_TRANSFERRED = false;
-        LOG_ERRORS = false;
+        LOG_EVENTS = false;
         logger = getLogger();
         logger.setLogFile("server.log");
     }
@@ -67,7 +61,7 @@ public class Server {
         LOG_INBOUND = false;
         LOG_OUTBOUND = true;
         LOG_TRANSFERRED = false;
-        LOG_ERRORS = false;
+        LOG_EVENTS = false;
         logger = getLogger();
         logger.setLogFile("server.log");
     }
@@ -84,17 +78,23 @@ public class Server {
         PORT = config.getIntProperty("PORT").orElse(port_default);
         PASSWORD = (config.getStringProperty("PASSWORD")
                 .orElse(Arrays.toString(password_default))).getBytes();
+
         LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(false);
-        LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(false);
-        LOG_TRANSFERRED = config.getBoolProperty("LOG_INBOUND").orElse(false);
-        LOG_ERRORS = config.getBoolProperty("LOG_ERRORS").orElse(false);
+        LOG_OUTBOUND = config.getBoolProperty("LOG_OUTBOUND").orElse(true);
+        LOG_TRANSFERRED = config.getBoolProperty("LOG_TRANSFERRED").orElse(false);
+        LOG_EVENTS = config.getBoolProperty("LOG_EVENTS").orElse(false);
 
         logger = getLogger();
-        logger.setLogFile("server.log");
+        logger.setLogFile("server.log");                // адрес тоже может быть вынесен в настройки
     }
 
+    /**
+     * Вспомогательная функция, создающая экземпляр логера
+     * с установленными в конструкторе настройками логирования.
+     * @return экземпляр логера с описанными настройками.
+     */
     private Logger getLogger() {
-        return new Logger(LOG_INBOUND, LOG_OUTBOUND, LOG_TRANSFERRED, LOG_ERRORS);
+        return new Logger(LOG_INBOUND, LOG_OUTBOUND, LOG_TRANSFERRED, LOG_EVENTS);
     }
 
     /**
@@ -104,7 +104,7 @@ public class Server {
      *            но в данном случае оно фиксированное.
      */
     public static void main(String[] args) {
-        Server chatwork = new Server(Path.of("settings.ini"));
+        Server chatwork = new Server(settingsSource);
         chatwork.listen();
     }
 
@@ -119,14 +119,14 @@ public class Server {
             while (running) {
                 try  {
                     Socket socket = serverSocket.accept();
-                    System.out.println("connected with " + socket);    // monitor
+                    logger.logEvent("connected with " + socket);
 
-                    Connection connection = new Connection(this, socket);
-                    connections.execute(connection);
+                    connections.execute(new Connection(this, socket));
 
                 } catch (IOException e) {
                     String error = "Ошибка получения потоков: " + e.getMessage();
                     System.out.println(error);
+                    logger.logEvent(error);
                     e.printStackTrace();
                 }
             }
@@ -134,6 +134,7 @@ public class Server {
         } catch (IOException e) {
             String error = "Непредвиденное завершение работы: " + e.getMessage();
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
         }
 
@@ -160,12 +161,9 @@ public class Server {
         try {
             new Socket(HOST, PORT).close();
         } catch (IOException e) {
+            logger.logEvent(e.getMessage());
             e.printStackTrace();
         }
     }
 
-
-    public boolean isLOG_INBOUND() {
-        return LOG_INBOUND;
-    }
 }
