@@ -4,8 +4,6 @@ import common.Configurator;
 import common.Message;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -26,32 +24,32 @@ public class Client {
     private static final int port_default = 7777;
     private static final Scanner usersInput = new Scanner(System.in);
 
-    // при запуске спрашивает имя файла настроек и загружает их из него {сайт:порт, имя_пользователя}
-    // после выбора имени пользователя пытается сохранить файл с таким именем,
-    // а также создаёт лог-файл с таким именем (если он ещё не существует)
-
     private final String HUB;
     private final int PORT;
     private final Path settingFile;
-    private String userName;
 
+    private String userName;
     private Socket connection = null;
     private ObjectOutputStream messagesOut = null;
-
+    /**
+     * Сигнализирует совпадение текущего имени пользователя данным на Сервере.
+     */
     private volatile boolean isRegistered = false;
 
+    /**
+     * Сценарий исполнения Клиента: определить источник настроек и
+     * создать на его основе экземпляр, определить начальное имя,
+     * затем подключиться к чат-хабу и начать работу.
+     * @param args параметры запуска программы из командной строки,
+     *             первый из них рассматривается как адрес файла настроек.
+     */
     public static void main(String[] args) {
-
         // Определение файла настроек и запуск на его основе нового клиента
         Client client = new Client(identifySource(args));
-
         // Приветствие пользователя, уточнение имени для регистрации
         client.enterUser();
-
         // Установление соединения с Сервером
         client.connect();
-
-
     }
 
     /**
@@ -100,13 +98,12 @@ public class Client {
         setUserName(nameToUse);
     }
 
-    private Client(String hub, int port, String name, Path filePath) {
-        HUB = hub;
-        PORT = port;
-        userName = name;
-        settingFile = filePath;
-    }
-
+    /**
+     * Создаёт новый Клиент на основе данных из файла настроек,
+     * либо, если файл или какие-то отдельные настройки не найдены,
+     * на основе значений по умолчанию.
+     * @param filePath путь к файлу настроек.
+     */
     public Client(Path filePath) {
         Configurator config = new Configurator(filePath);
         HUB = config.getStringProperty("HOST").orElse(host_default);
@@ -119,10 +116,8 @@ public class Client {
         try {
             connection = new Socket(HUB, PORT);
             messagesOut = new ObjectOutputStream(connection.getOutputStream());
-//            ObjectInputStream messagesIn = new ObjectInputStream(connection.getInputStream());
 
-            System.out.println("connect: " + connection);    // monitor
-
+//            System.out.println("connect: " + connection);    // monitor
 
             // в самотекущем Приёмнике слушать входящие сообщения
             Receiver receiver = new Receiver(this);
@@ -177,11 +172,11 @@ public class Client {
     }
 
     /**
-     * Выставляет в клиенте флажок, что установленное имя пользователя зарегистрировано
+     * Выставляет в Клиенте флажок, что установленное имя пользователя зарегистрировано
      * на чат-сервере.
      */
     public void setRegistered() {
-        System.out.println(this + " set as registered with " + userName);    // monitor
+//        System.out.println(this + " set as registered with " + userName);    // monitor
         isRegistered = true;
     }
 
@@ -201,7 +196,6 @@ public class Client {
      */
     public void registeringRequest() throws IOException {
         messagesOut.writeObject(Message.registering(userName));
-//        messagesOut.flush();
     }
 
     /**
@@ -214,7 +208,7 @@ public class Client {
         if (userName != null)
             settings.put("NAME", userName);
         Configurator.writeSettings(settings, settingFile);
-        System.out.println("name in settings saved");           // monitor
+//        System.out.println("name in settings saved");           // monitor
     }
 
     /**
@@ -241,4 +235,6 @@ public class Client {
     public Socket getConnection() {
         return connection;
     }
+
+
 }

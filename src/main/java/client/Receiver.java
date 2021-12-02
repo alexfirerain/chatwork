@@ -2,6 +2,7 @@ package client;
 
 import common.Message;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
@@ -30,31 +31,43 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
-        System.out.println("Receiver started");
+//        System.out.println("Receiver started");             // monitor
         while (!client.getConnection().isClosed() && !interrupted()) {
             try {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
 
 
-                if (gotMessage.getType() == SERVER_MSG){            // по адресату широковещательных сообщений судим о регистрированности
-                    String currentName = client.getUserName();
+                if (gotMessage.getType() == SERVER_MSG) {            // по адресату широковещательных сообщений судим о регистрированности
                     String gotName = gotMessage.getAddressee();
+                    boolean namesMatch = client.getUserName().equals(gotName);
 
-                  System.out.println(client + "'s name is " + currentName);      // monitor
-                  System.out.println("the message is for " + (gotName == null ? "everybody" : gotName));      // monitor
+//                    System.out.println(client + "'s name is " + currentName);      // monitor
+//                    System.out.println("the message is for " + (gotName == null ? "everybody" : gotName));      // monitor
 
-                    if (!client.isRegistered() && currentName.equals(gotName))   // Приёмник запускается только когда userName уже != null
+                    if (!client.isRegistered() && namesMatch)   // Приёмник запускается только когда userName уже != null
                         client.setRegistered();
 
-                    if (client.isRegistered() && !currentName.equals(gotName)) {
+                    if (client.isRegistered() && !namesMatch) {
                         client.setUserName(gotName);
                         client.saveSettings();
                     }
                 }
 
+            } catch (EOFException e) {
+                String info = "Соединение c сервером завершено.";
+                System.out.println(info);
+//                e.printStackTrace();
+                try {
+                    client.getConnection().close();
+                    break;
+                } catch (IOException ex) {
+                    String error = "Ошибка закрытия соединения: " + e.getMessage();
+                    System.out.println(error);
+                    ex.printStackTrace();
+                }
             } catch (IOException | ClassNotFoundException e) {
-                String error = "ошибка получения сообщения: " + e.getMessage();
+                String error = "Ошибка получения сообщения: " + e.getMessage();
                 System.out.println(error);
                 e.printStackTrace();
                 break;
@@ -63,7 +76,6 @@ public class Receiver extends Thread {
     }
 
     private void display(Message gotMessage) {
-
         System.out.println(gotMessage);
     }
 }

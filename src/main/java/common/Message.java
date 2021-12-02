@@ -41,7 +41,7 @@ public class Message implements Serializable {
      */
     public void setAddressee(String addressee) {
         this.addressee = addressee;
-        System.out.println("Receiver of the message is set: " + addressee);   // monitor
+//        System.out.println("Receiver of the message is set: " + addressee);   // monitor
     }
 
     private Message(MessageType type, String sender, String addressee, String message) {
@@ -49,7 +49,7 @@ public class Message implements Serializable {
         this.sender = sender;
         this.addressee = addressee;
         this.message = message;
-        System.out.printf("[%s]%n", this);        // monitor
+//        System.out.printf("[%s]%n", this);        // monitor
     }
 
     @Override

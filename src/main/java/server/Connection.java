@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
@@ -55,9 +56,7 @@ public class Connection implements Runnable, AutoCloseable {
             messageReceiver = new ObjectInputStream(socket.getInputStream());
 
             // регистрируем участника
-//            System.out.println("the Connection started"); // monitor
             dispatcher.registerUser(this);
-//            System.out.println("registering passed"); // monitor
 
             // пока соединено
             while (!socket.isClosed()) {
@@ -66,6 +65,11 @@ public class Connection implements Runnable, AutoCloseable {
                     // иначе: считываем входящие сообщения и передаём их серверу на обработку
                     try {
                         operateOn(receiveMessage());
+                    } catch (SocketException e) {
+                        String error = "Соединение закрыто: " + e.getMessage();
+                        System.out.println(error);
+                        e.printStackTrace();
+                        socket.close();
                     } catch (IOException | ClassNotFoundException e) {
                         String error = "Ошибка обработки сообщения: " + e.getMessage();
                         System.out.println(error);
@@ -107,9 +111,8 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
-        Message message = (Message) messageReceiver.readObject();
-        System.out.println("message got: [" + message + "]");       // monitor
-        return message;
+        //        System.out.println("message got: [" + message + "]");       // monitor
+        return (Message) messageReceiver.readObject();
     }
 
     /**

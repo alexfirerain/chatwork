@@ -1,6 +1,7 @@
 package server;
 
 import common.Configurator;
+import common.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,11 +23,19 @@ public class Server {
     private static final String host_default = "localhost";
 
     private final ExecutorService connections = Executors.newCachedThreadPool();
-    final Dispatcher users = new Dispatcher();
+
+    private final boolean LOG_INBOUND;
+    private final boolean LOG_OUTBOUND;
+    private final boolean LOG_TRANSFERRED;
+    private final boolean LOG_ERRORS;
+
 
     private final String HOST;
     private final int PORT;
     private final byte[] PASSWORD;
+
+    final Dispatcher users = new Dispatcher();
+    private final Logger logger;
 
     private boolean running;
 
@@ -37,6 +46,12 @@ public class Server {
         HOST = host_default;
         PORT = port_default;
         PASSWORD = password_default;
+        LOG_INBOUND = false;
+        LOG_OUTBOUND = true;
+        LOG_TRANSFERRED = false;
+        LOG_ERRORS = false;
+        logger = getLogger();
+        logger.setLogFile("server.log");
     }
 
     /**
@@ -49,6 +64,12 @@ public class Server {
         HOST = host;
         PORT = port;
         PASSWORD = password;
+        LOG_INBOUND = false;
+        LOG_OUTBOUND = true;
+        LOG_TRANSFERRED = false;
+        LOG_ERRORS = false;
+        logger = getLogger();
+        logger.setLogFile("server.log");
     }
 
     /**
@@ -63,6 +84,17 @@ public class Server {
         PORT = config.getIntProperty("PORT").orElse(port_default);
         PASSWORD = (config.getStringProperty("PASSWORD")
                 .orElse(Arrays.toString(password_default))).getBytes();
+        LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(false);
+        LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(false);
+        LOG_TRANSFERRED = config.getBoolProperty("LOG_INBOUND").orElse(false);
+        LOG_ERRORS = config.getBoolProperty("LOG_ERRORS").orElse(false);
+
+        logger = getLogger();
+        logger.setLogFile("server.log");
+    }
+
+    private Logger getLogger() {
+        return new Logger(LOG_INBOUND, LOG_OUTBOUND, LOG_TRANSFERRED, LOG_ERRORS);
     }
 
     /**
@@ -133,8 +165,7 @@ public class Server {
     }
 
 
-
-
-
-
+    public boolean isLOG_INBOUND() {
+        return LOG_INBOUND;
+    }
 }

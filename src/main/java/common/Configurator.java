@@ -82,6 +82,20 @@ public class Configurator {
     }
 
     /**
+     * Возвращает опционально булево значение запрошенного параметра.
+     * @param name имя параметра.
+     * @return  пустую опциональ, если параметр отсутствует как таковой,
+     * опциональ с {@code истинно}, если текстовое значение параметра "true" (без учёта регистра),
+     * а в любом ином случае опциональ с {@code ложно}.
+     */
+    public Optional<Boolean> getBoolProperty(String name) {
+        String stringValue = settings.get(name);
+        if (stringValue == null)
+            return Optional.empty();
+        return Optional.of(Boolean.parseBoolean(stringValue));
+    }
+
+    /**
      * Сохраняет настройки, полученные в виде карты <строка, строка>,
      * в файл по указанному адресу.
      * @param settings карта сохраняемых настроек.
