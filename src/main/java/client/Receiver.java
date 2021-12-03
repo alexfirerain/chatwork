@@ -6,6 +6,7 @@ import common.Message;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.Socket;
 
 import static common.MessageType.SERVER_MSG;
 
@@ -34,7 +35,8 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
-        while (!client.getConnection().isClosed() && !interrupted()) {
+        Socket connection = client.getConnection();
+        while (!connection.isClosed() && !interrupted()) {
             try {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
@@ -54,10 +56,12 @@ public class Receiver extends Thread {
             } catch (EOFException e) {
                 String info = "Соединение c сервером завершено.";
                 System.out.println(info);
+                logger.logEvent(info);
 //                e.printStackTrace();
                 try {
-                    client.getConnection().close();
-                    break;
+                    connection.close();
+                    logger.stopLogging();
+                    break;                          // ?
                 } catch (IOException ex) {
                     String error = "Ошибка закрытия соединения: " + e.getMessage();
                     System.out.println(error);
@@ -77,7 +81,6 @@ public class Receiver extends Thread {
 
     private void display(Message gotMessage) {
         System.out.println(gotMessage);
-        String sender = gotMessage.getSender() == null ? "сервера" : gotMessage.getSender();
-        logger.logInbound(gotMessage, sender);
+        logger.logInbound(gotMessage);
     }
 }

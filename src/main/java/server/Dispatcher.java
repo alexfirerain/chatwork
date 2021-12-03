@@ -56,12 +56,10 @@ public class Dispatcher {
                 || connection == null || connection.isClosed()
                 || users.containsKey(userName)) {
             logger.logEvent("Отказ в регистрации имени " + userName + " для " + connection);
-//            System.out.println("зарегистрированы: " + getUsers());      // monitor
             return false;
         }
         users.put(userName, connection);
         logger.logEvent("Имя " + userName + " зарегистрировано для " + connection);
-//        System.out.println("зарегистрированы: " + getUsers());      // monitor
         return true;
     }
 
@@ -185,7 +183,6 @@ public class Dispatcher {
      */
     public void forward(Message message) {
         sendToAllBut(message, message.getSender());
-        logger.logTransferred(message, message.getSender());
     }
 
     /**
@@ -198,10 +195,7 @@ public class Dispatcher {
 //            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.receiveMessage().getSender();
             while(!addUser(sender, connection)) {
-                Message warnMessage = Message.fromServer(WARN_TXT);
-                connection.sendMessage(warnMessage);
-                logger.logOutbound(warnMessage);
-
+                connection.sendMessage(Message.fromServer(WARN_TXT));
                 sender = connection.receiveMessage().getSender();
             }
             connection.exitPrivateMode();

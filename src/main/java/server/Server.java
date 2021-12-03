@@ -28,7 +28,7 @@ public class Server {
     private final boolean LOG_TRANSFERRED;
     private final boolean LOG_EVENTS;
 
-    final Dispatcher users = new Dispatcher(this);
+    final Dispatcher users;
     final Logger logger;
 
     private boolean running;
@@ -46,6 +46,7 @@ public class Server {
         LOG_EVENTS = false;
         logger = getLogger();
         logger.setLogFile("server.log");
+        users = new Dispatcher(this);
     }
 
     /**
@@ -64,6 +65,7 @@ public class Server {
         LOG_EVENTS = false;
         logger = getLogger();
         logger.setLogFile("server.log");
+        users = new Dispatcher(this);
     }
 
     /**
@@ -86,6 +88,7 @@ public class Server {
 
         logger = getLogger();
         logger.setLogFile("server.log");                // адрес тоже может быть вынесен в настройки
+        users = new Dispatcher(this);
     }
 
     /**
@@ -139,6 +142,7 @@ public class Server {
         }
 
         connections.shutdownNow();
+        logger.stopLogging();
     }
 
     /**

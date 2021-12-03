@@ -135,6 +135,7 @@ public class Client {
     public void connect() {
         try {
             connection = new Socket(HUB, PORT);
+            logger.logEvent("Установлено соединение с " + connection);
             messagesOut = new ObjectOutputStream(connection.getOutputStream());
 
             // в самотекущем Приёмнике слушать входящие сообщения
@@ -165,7 +166,9 @@ public class Client {
                 send(usersInput.nextLine());
             }
 
+            logger.logEvent("Завершение работы чат-клиента.");
             receiver.interrupt();
+            logger.stopLogging();
 
         } catch (UnknownHostException e) {
             String error = "Хаб для подключения не обнаружен: " + e.getMessage();

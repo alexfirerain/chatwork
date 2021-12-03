@@ -8,7 +8,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.StringJoiner;
+
+import static common.MessageType.SERVER_MSG;
 
 /**
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
@@ -107,6 +108,11 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
+        if (message.getType() == SERVER_MSG || logger.dontLogTransferred())
+            logger.logOutbound(message);
+        else {
+            logger.logTransferred(message);
+        }
     }
 
     /**
@@ -116,7 +122,10 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
-        return (Message) messageReceiver.readObject();
+        Message gotMessage = (Message) messageReceiver.readObject();
+        if (gotMessage.getType().ordinal() > 2)
+            logger.logInbound(gotMessage);
+        return gotMessage;
     }
 
     /**
@@ -127,7 +136,7 @@ public class Connection implements Runnable, AutoCloseable {
         String sender = gotMessage.getSender();
 
         switch (gotMessage.getType()) {
-            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации?
+            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации? / нет, убрать его
             case TXT_MSG -> dispatcher.forward(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
             case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));

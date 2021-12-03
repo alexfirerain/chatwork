@@ -8,7 +8,6 @@ public class LogWriter extends Thread {
     private final ArrayBlockingQueue<String> queu;
     private final Logger logSource;
 
-
     public LogWriter(Logger logSource, int length) {
         this.logSource = logSource;
         queu = new ArrayBlockingQueue<>(length, true);
@@ -17,6 +16,14 @@ public class LogWriter extends Thread {
     @Override
     public void run() {
         while (!isInterrupted() || !queu.isEmpty()) {
+            if (queu.isEmpty()) {                   // TODO: переделать на режим ожидания события!
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                continue;
+            }
             String logEntry = queu.poll();
             if (logEntry != null)
                 try (FileWriter logger = new FileWriter(logSource.getLogFile(), true)) {

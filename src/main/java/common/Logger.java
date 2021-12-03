@@ -1,23 +1,20 @@
 package common;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.ArrayBlockingQueue;
 
 public class Logger {
     private static final SimpleDateFormat logTime = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
+    private final LogWriter writer;
     private final boolean log_inbound;
     private final boolean log_outbound;
     private final boolean log_transferred;
     private final boolean log_events;
 
     private volatile File logFile;
-    private ArrayBlockingQueue<String> logQueue;
-    private final LogWriter writer;
 
     public Logger(boolean log_inbound, boolean log_outbound, boolean log_transferred, boolean log_events) {
         this.log_inbound = log_inbound;
@@ -56,31 +53,39 @@ public class Logger {
 //        }
     }
 
-    public void logInbound(Message inboundMessage, String sender) {
+    public void logInbound(Message inboundMessage) {
         if (!log_inbound) return;
-        log("получено от " + sender + ": " + inboundMessage);
-    }
-    public void logOutbound(Message outboundMessage, String sender) {
-        if (!log_outbound) return;
-        log("отослано от " + sender + ": " + outboundMessage);
-    }
-    public void logOutbound(Message outboundMessage) {
-        if (!log_outbound) return;
-        String sender = outboundMessage.getSender() == null ? "сервера" : outboundMessage.getSender();
-        log("отослано от " + sender + ": " + outboundMessage);
+        log("получено от " + determineSender(inboundMessage) + ": " + inboundMessage);
     }
 
-    public void logTransferred(Message transferredMessage, String sender) {
-        if (!log_transferred) return;
-        log("переправлено от " + sender + ": " + transferredMessage);
+    public void logOutbound(Message outboundMessage) {
+        if (!log_outbound) return;
+        log("отослано от " + determineSender(outboundMessage) + ": " + outboundMessage);
     }
+
+    public void logTransferred(Message transferredMessage) {
+        if (!log_transferred) return;
+        log("переправлено от " + determineSender(transferredMessage) + ": " + transferredMessage);
+    }
+
     public void logEvent(String event) {
         if (!log_events) return;
         log(event);
     }
 
-
     public File getLogFile() {
         return logFile;
     }
+
+    private String determineSender(Message message) {
+        return message.getSender() == null ? "сервера" : message.getSender();
+    }
+    public void stopLogging() {
+        writer.interrupt();
+    }
+
+    public boolean dontLogTransferred() {
+        return log_transferred;
+    }
+
 }
