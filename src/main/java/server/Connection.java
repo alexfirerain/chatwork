@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.StringJoiner;
 
 /**
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
@@ -160,5 +161,10 @@ public class Connection implements Runnable, AutoCloseable {
     @Override
     public void close() throws Exception {
         socket.close();
+    }
+
+    @Override
+    public String toString() {
+        return socket.getInetAddress() + ":" + socket.getLocalPort();
     }
 }

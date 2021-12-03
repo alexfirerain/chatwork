@@ -1,5 +1,6 @@
 package server;
 
+import common.Logger;
 import common.Message;
 
 import java.io.IOException;
@@ -27,12 +28,15 @@ public class Dispatcher {
      * Список участников в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
+    private final Logger logger;
 
     /**
      * Инициализирует новый Диспетчер с пустым списком участников.
+     * @param host Сервер, обслуживаемый Диспетчером.
      */
-    public Dispatcher() {
+    public Dispatcher(Server host) {
         users = new ConcurrentHashMap<>();
+        logger = host.logger;
     }
 
 
@@ -51,11 +55,13 @@ public class Dispatcher {
         if (userName == null || userName.isBlank()
                 || connection == null || connection.isClosed()
                 || users.containsKey(userName)) {
-            System.out.println("зарегистрированы: " + getUsers());      // monitor
+            logger.logEvent("Отказ в регистрации имени " + userName + " для " + connection);
+//            System.out.println("зарегистрированы: " + getUsers());      // monitor
             return false;
         }
         users.put(userName, connection);
-        System.out.println("зарегистрированы: " + getUsers());      // monitor
+        logger.logEvent("Имя " + userName + " зарегистрировано для " + connection);
+//        System.out.println("зарегистрированы: " + getUsers());      // monitor
         return true;
     }
 
@@ -121,17 +127,20 @@ public class Dispatcher {
                         "Соединение с участником %s не доступно: %s", username, e.getMessage());
                 System.out.println(error);
                 e.printStackTrace();
+                logger.logEvent(error);
                 goodbyeUser(username);
             } catch (IOException e) {
                 String error = String.format(
                         "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
                 System.out.println(error);
                 e.printStackTrace();
+                logger.logEvent(error);
             }
         } else {
             String error = String.format(
                     "Сообщение не может быть отправлено: участник %s не подключён.", username);
             System.out.println(error);
+            logger.logEvent(error);
         }
     }
 
@@ -145,6 +154,7 @@ public class Dispatcher {
             message.setAddressee(user);
             sendTo(message, user);
         });
+        logger.logOutbound(message);
     }
 
     /**
@@ -175,6 +185,7 @@ public class Dispatcher {
      */
     public void forward(Message message) {
         sendToAllBut(message, message.getSender());
+        logger.logTransferred(message, message.getSender());
     }
 
     /**
@@ -187,7 +198,10 @@ public class Dispatcher {
 //            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = connection.receiveMessage().getSender();
             while(!addUser(sender, connection)) {
-                connection.sendMessage(Message.fromServer(WARN_TXT));
+                Message warnMessage = Message.fromServer(WARN_TXT);
+                connection.sendMessage(warnMessage);
+                logger.logOutbound(warnMessage);
+
                 sender = connection.receiveMessage().getSender();
             }
             connection.exitPrivateMode();
@@ -204,7 +218,7 @@ public class Dispatcher {
      * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
      * @param connection соединение, которое требуется переназначить на новое имя.
      */
-    public void changeName(String newName, Connection connection) {
+    public void changeName(String newName, Connection connection) {     // TODO: поскольку блокирующее, перенести в Соединение!
         String oldName = getUserForConnection(connection);
         if (addUser(newName, connection)) {
             users.remove(oldName);

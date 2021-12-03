@@ -27,9 +27,9 @@ public class Server {
     private final boolean LOG_OUTBOUND;
     private final boolean LOG_TRANSFERRED;
     private final boolean LOG_EVENTS;
-    final Logger logger;
 
-    final Dispatcher users = new Dispatcher();
+    final Dispatcher users = new Dispatcher(this);
+    final Logger logger;
 
     private boolean running;
 

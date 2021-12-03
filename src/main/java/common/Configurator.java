@@ -67,7 +67,7 @@ public class Configurator {
      * Возвращает опционально int, соответсвующий значению запрошенного параметра.
      * @param name имя параметра.
      * @return  опциональ со значением параметра, либо, если параметр отсутствует
-     * в файле настроек или число не было распознано, пустую опциональ.
+     * в файле настроек, или число не было распознано, пустую опциональ.
      */
     public Optional<Integer> getIntProperty(String name) {
         String stringValue = settings.get(name);
@@ -78,7 +78,6 @@ public class Configurator {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
-
     }
 
     /**
@@ -111,7 +110,7 @@ public class Configurator {
         try (FileWriter writer = new FileWriter(String.valueOf(storage), false)) {
             writer.write(string.toString());
             writer.flush();
-        } catch (IOException e) {
+        } catch (IOException e) {                                           // пробросить?
             String error = "Не удалось сохранить настройки в " + storage;
             System.out.println(error);
             e.printStackTrace();

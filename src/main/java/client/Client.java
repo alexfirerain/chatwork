@@ -30,7 +30,7 @@ public class Client {
     private final Path settingFile;
     private final boolean LOG_INBOUND;
     private final boolean LOG_OUTBOUND;
-    private final boolean LOG_ERRORS;
+    private final boolean LOG_EVENTS;
     final Logger logger;
 
     private String userName;
@@ -118,7 +118,7 @@ public class Client {
 
         LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
         LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
-        LOG_ERRORS = config.getBoolProperty("LOG_ERRORS").orElse(false);
+        LOG_EVENTS = config.getBoolProperty("LOG_EVENTS").orElse(false);
         logger = getLogger();
         logger.setLogFile(isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
     }
@@ -129,7 +129,7 @@ public class Client {
      * @return экземпляр логера с описанными настройками.
      */
     private Logger getLogger() {
-        return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_ERRORS);
+        return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_EVENTS);
     }
 
     public void connect() {
@@ -216,7 +216,9 @@ public class Client {
      * @throws IOException при ошибке исходящего потока.
      */
     public void registeringRequest() throws IOException {
-        messagesOut.writeObject(Message.registering(userName));
+        Message requestForRegistration = Message.registering(userName);
+        messagesOut.writeObject(requestForRegistration);
+        logger.logOutbound(requestForRegistration);
     }
 
     /**
@@ -230,7 +232,7 @@ public class Client {
             settings.put("NAME", userName);
         settings.put("LOG_INBOUND", String.valueOf(LOG_INBOUND));
         settings.put("LOG_OUTBOUND", String.valueOf(LOG_OUTBOUND));
-        settings.put("LOG_ERRORS", String.valueOf(LOG_ERRORS));
+        settings.put("LOG_EVENTS", String.valueOf(LOG_EVENTS));
         Configurator.writeSettings(settings, settingFile);      // вывести обработку ошибки сюда, чтобы логировать?
     }
 
@@ -250,6 +252,7 @@ public class Client {
     public void setUserName(String newName) {
         userName = newName;
         logger.setLogFile(newName + ".log");            // TODO: проверку, чтоб в имени не было недопустимых символов
+        logger.logEvent("установлено имя: " + newName);
     }
 
     public String getUserName() {
