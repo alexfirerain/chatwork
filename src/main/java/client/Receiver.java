@@ -35,7 +35,7 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
-        Socket connection = client.getConnection();
+        Socket connection = client.getConnection();                 // объединить в новое поле ↑
         while (!connection.isClosed() && !interrupted()) {
             try {
                 Message gotMessage = (Message) ether.readObject();

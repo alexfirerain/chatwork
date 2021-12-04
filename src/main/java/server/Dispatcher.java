@@ -260,14 +260,14 @@ public class Dispatcher {
      * @param requesting имя участника, запросившего выключение сервера.
      * @param server     сервер, который должен быть остановлен.
      */
-    public void getShut(String requesting, Server server) {
+    public void getShut(String requesting, Server server) {     // TODO: поскольку блокирующее, перенести в Соединение!
         Connection invoker = getConnectionFor(requesting);
         invoker.enterPrivateMode();
         send(Message.fromServer(PASSWORD_REQUEST, requesting));
         byte[] gotPassword = new byte[0];
         try {
             gotPassword = invoker.receiveMessage()
-                    .getMessage().getBytes();
+                    .getMessage().getBytes();                   // TODO: принимая пароль, подавить логирование
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
