@@ -3,6 +3,7 @@ package client;
 import common.Configurator;
 import common.Logger;
 import common.Message;
+import common.MessageType;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -135,13 +136,14 @@ public class Client {
     }
 
     public void connect() {
+        Receiver receiver = null;
         try {
             connection = new Socket(HUB, PORT);
             logger.logEvent("Установлено соединение с " + connection);
             messagesOut = new ObjectOutputStream(connection.getOutputStream());
 
             // в самотекущем Приёмнике слушать входящие сообщения
-            Receiver receiver = new Receiver(this);
+            receiver = new Receiver(this);
             receiver.start();
 
             // запрос регистрации подготовленного имени
@@ -165,12 +167,12 @@ public class Client {
 
             // основной рабочий цикл
             while (!connection.isClosed()) {
-                send(usersInput.nextLine());
+                send(usersInput.nextLine());        // нужно как-то разорвать это ожидание в конце
             }
 
-            logger.logEvent("Завершение работы чат-клиента.");
-            receiver.interrupt();
-            logger.stopLogging();
+//            logger.logEvent("Завершение работы чат-клиента.");
+//            receiver.interrupt();
+//            logger.stopLogging();
 
         } catch (UnknownHostException e) {
             String error = "Хаб для подключения не обнаружен: " + e.getMessage();
@@ -182,6 +184,13 @@ public class Client {
             System.out.println(error);
             logger.logEvent(error);
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            logger.logEvent("Завершение работы чат-клиента.");
+            if (receiver != null)
+                receiver.interrupt();
+            logger.stopLogging();
         }
 
     }
@@ -192,10 +201,14 @@ public class Client {
      * @param inputText введённый пользователем текст.
      * @throws IOException при ошибке исходящего потока.
      */
-    private void send(String inputText) throws IOException {
+    private void send(String inputText) throws IOException, InterruptedException {
         Message messageToSend = Message.fromClientInput(inputText, userName);
         messagesOut.writeObject(messageToSend);
         logger.logOutbound(messageToSend);
+        if (messageToSend.getType() == MessageType.EXIT_REQUEST) {
+            Thread.sleep(3000);
+            connection.close();
+        }
     }
 
     /**
@@ -208,7 +221,7 @@ public class Client {
 
     /**
      * Показывает, является ли имя клиента зарегистрированным на чат-сервере.
-     * @return значение поля {@code isRegistered}, то есть {@code истинно},
+     * @return значение флажка {@code isRegistered}, то есть {@code истинно},
      * если вызывался {@code .setRegistered()}.
      */
     public boolean isRegistered() {

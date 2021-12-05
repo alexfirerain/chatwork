@@ -33,7 +33,7 @@ public class Receiver extends Thread {
         connection = client.getConnection();
         ether = new ObjectInputStream(connection.getInputStream());
         logger = client.logger;
-        setDaemon(true);
+//        setDaemon(true);
     }
 
     @Override
@@ -63,7 +63,7 @@ public class Receiver extends Thread {
                 try {
                     connection.close();
                     logger.stopLogging();
-                    return;
+                    interrupt();
 //                    break;                          // ?
                 } catch (IOException ex) {
                     String error = "Ошибка закрытия соединения: " + e.getMessage();

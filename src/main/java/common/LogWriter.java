@@ -58,6 +58,11 @@ public class LogWriter extends Thread {
         System.out.println("END running LogWriter");    // monitor
     }
 
+    /**
+     * Помещает новую запись в очередь на протоколирование
+     * и уведомляет логописца, что есть работа.
+     * @param entry текст записи, которую нужно будет залогировать.
+     */
     public void placeInQueue(String entry) {
         try {
             dormantWriter.lock();

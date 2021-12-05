@@ -51,6 +51,11 @@ public class Logger {
         writer.start();
     }
 
+    /**
+     * Устанавливает адрес файла, в который должны записываться новые события,
+     * и, если такой ещё не существует, создаёт его.
+     * @param fileName имя (адрес) лог-файла.
+     */
     public void setLogFile(String fileName) {
         logFile = new File(fileName);
 
