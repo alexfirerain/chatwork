@@ -109,6 +109,8 @@ public class Server {
     public static void main(String[] args) {
         Server chatwork = new Server(settingsSource);
         chatwork.listen();
+
+        System.out.println("END running Server");       // monitor
     }
 
     /**

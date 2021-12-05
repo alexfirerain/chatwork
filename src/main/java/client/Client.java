@@ -55,6 +55,8 @@ public class Client {
         client.enterUser();
         // Установление соединения с Сервером
         client.connect();
+
+        System.out.println("END running Client");   // monitor
     }
 
     /**
@@ -124,8 +126,8 @@ public class Client {
     }
 
     /**
-     * Вспомогательная функция, создающая экземпляр логера
-     * с установленными в конструкторе настройками логирования.
+     * Вспомогательная функция, создающая экземпляр логировщика
+     * с установленными в конструкторе настройками протоколирования.
      * @return экземпляр логера с описанными настройками.
      */
     private Logger getLogger() {
@@ -244,7 +246,7 @@ public class Client {
      * @param name строка.
      * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
      */
-    private static boolean isAcceptableName(String name) {
+    private static boolean isAcceptableName(String name) {      // вот сюда-то и нужно добавить проверку на буквенный диапазон
         return name != null && !name.isBlank();
     }
 

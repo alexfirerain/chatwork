@@ -5,15 +5,41 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/**
+ * Логировщик предоставляет функционал для протоколирования определённых событий в лог-файл.
+ */
 public class Logger {
+    /**
+     * Формат даты, в котором логировщик указывает время события при его протоколировании.
+     */
     private static final SimpleDateFormat logTime = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
+    /**
+     * Логописец, который используется данным логировщиком.
+     */
     private final LogWriter writer;
+    /**
+     * Включено ли протоколирование входящих сообщений.
+     */
     private final boolean log_inbound;
+    /**
+     * Включено ли протоколирование исходящих сообщений.
+     */
     private final boolean log_outbound;
+    /**
+     * Включено ли протоколирование сообщений, полученных Сервером от пользователя чата
+     * и переданных другим пользователям. Программа-клиент не предполагает логирования такого типа.
+     */
     private final boolean log_transferred;
+    /**
+     * Включено ли протоколирование ошибок и событий, связанных с работой программы.
+     */
     private final boolean log_events;
 
+    /**
+     * Ссылка на файл, в который записывается лог. Может меняться по ходу работы программы
+     * (когда пользователь меняет имя в ходе беседы).
+     */
     private volatile File logFile;
 
     public Logger(boolean log_inbound, boolean log_outbound, boolean log_transferred, boolean log_events) {
@@ -38,19 +64,17 @@ public class Logger {
 
     }
 
+    /**
+     * Оформляет полученную строку как запись для лога
+     * (т.е. добавляет к ней текущую дату в принятом в логировщике формате)
+     * и ставит её в очередь к логописцу.
+     * @param event текст, который логируется.
+     */
     public void log(String event) {
         String logEntry = "%s : %s\n"
                 .formatted(logTime.format(new Date()), event);
 
         writer.placeInQueue(logEntry);
-
-
-//        try(FileWriter logger = new FileWriter(logFile, true)) {
-//            logger.write(logEntry);
-//            logger.flush();
-//        } catch (IOException e) {
-//            System.out.println("Что-то лог не пишется! -> " + e.getMessage());
-//        }
     }
 
     public void logInbound(Message inboundMessage) {
@@ -73,9 +97,14 @@ public class Logger {
         log(event);
     }
 
+    /**
+     * Сообщает ссылку на файл, который следует использовать для логирования новых событий.
+     * @return значение по́ля logFile.
+     */
     public File getLogFile() {
         return logFile;
     }
+
 
     private String determineSender(Message message) {
         return message.getSender() == null ? "сервера" : message.getSender();
@@ -84,7 +113,13 @@ public class Logger {
         writer.interrupt();
     }
 
-    public boolean dontLogTransferred() {
+    /**
+     * Показывает, включён ли в логировщике учёт пересланных сообщений
+     * (чтобы определить, что их следует учитывать как исходящие,
+     * если включён учёт исходящих, но выключен учёт пересланных).
+     * @return значение по́ля {@code log_transferred}.
+     */
+    public boolean isLoggingTransferred() {
         return log_transferred;
     }
 

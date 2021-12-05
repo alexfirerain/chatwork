@@ -13,10 +13,12 @@ import static common.MessageType.SERVER_MSG;
 
 /**
  * Нить, предназначенная читать из входящего потока сообщения
- * и выдавать их пользователю в консоль в правильном формате.
+ * и выдавать их пользователю в консоль в правильном формате,
+ * а также следить по ним за статусом зарегистрированности пользователя на сервере.
  */
 public class Receiver extends Thread {
     private final Client client;
+    private final Socket connection;
     private final ObjectInputStream ether;
     private final Logger logger;
 
@@ -28,14 +30,14 @@ public class Receiver extends Thread {
      */
     public Receiver(Client client) throws IOException {
         this.client = client;
-        ether = new ObjectInputStream(client.getConnection().getInputStream());
+        connection = client.getConnection();
+        ether = new ObjectInputStream(connection.getInputStream());
         logger = client.logger;
         setDaemon(true);
     }
 
     @Override
     public void run() {
-        Socket connection = client.getConnection();                 // объединить в новое поле ↑
         while (!connection.isClosed() && !interrupted()) {
             try {
                 Message gotMessage = (Message) ether.readObject();
@@ -61,7 +63,8 @@ public class Receiver extends Thread {
                 try {
                     connection.close();
                     logger.stopLogging();
-                    break;                          // ?
+                    return;
+//                    break;                          // ?
                 } catch (IOException ex) {
                     String error = "Ошибка закрытия соединения: " + e.getMessage();
                     System.out.println(error);
@@ -77,6 +80,7 @@ public class Receiver extends Thread {
                 break;
             }
         }
+        System.out.println("END running Receiver");     // monitor
     }
 
     private void display(Message gotMessage) {

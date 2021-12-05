@@ -7,10 +7,26 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Логописец, держащий очередь протоколируемых событий и в отдельном потоке
+ * записывающий их в тот файл, который указан в запустившем этот логописец логировщике.
+ */
 public class LogWriter extends Thread {
+    /**
+     * Очередь событий, которые нужно записать.
+     */
     private final ArrayBlockingQueue<String> queue;
+    /**
+     * Логировщик, запустивший этот логописец.
+     */
     private final Logger logSource;
+    /**
+     * Синхронизатор, обеспечивающий логописцу покой, когда нечего записывать.
+     */
     final Lock dormantWriter = new ReentrantLock(true);
+    /**
+     * Условие, по которому логописец пробуждается к работе.
+     */
     final Condition entryReady = dormantWriter.newCondition();
 
     public LogWriter(Logger logSource, int length) {
@@ -39,6 +55,7 @@ public class LogWriter extends Thread {
         } finally {
             dormantWriter.unlock();
         }
+        System.out.println("END running LogWriter");    // monitor
     }
 
     public void placeInQueue(String entry) {

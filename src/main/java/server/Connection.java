@@ -28,7 +28,6 @@ public class Connection implements Runnable, AutoCloseable {
      * Создаёт новое Соединение ассоциированного Сервера над указанным Сокетом.
      * @param host   какой сервер установил это соединение.
      * @param socket собственно соединение с конкретным удалённым адресом.
-// * @throws IOException при ошибках получения входящего или исходящего потока.
      */
     public Connection(Server host, Socket socket) {
         this.host = host;
@@ -69,6 +68,7 @@ public class Connection implements Runnable, AutoCloseable {
                     // иначе: считываем входящие сообщения и передаём их серверу на обработку
                     try {
                         operateOn(receiveMessage());
+
                     } catch (SocketException e) {
                         String error = "Соединение закрыто: " + e.getMessage();
                         System.out.println(error);
@@ -99,6 +99,7 @@ public class Connection implements Runnable, AutoCloseable {
 //            }
 //        }
 
+        System.out.println("END running Connection");   // monitor
     }
 
     /**
@@ -108,7 +109,7 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
-        if (message.getType() == SERVER_MSG || logger.dontLogTransferred())
+        if (message.getType() == SERVER_MSG || !logger.isLoggingTransferred())
             logger.logOutbound(message);
         else {
             logger.logTransferred(message);
