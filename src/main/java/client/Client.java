@@ -73,7 +73,7 @@ public class Client {
      */
     private static Path identifySource(String[] args) {
         String filePath;
-        do if (args.length >= 1 && Files.isRegularFile(Path.of(args[0]))) {
+        do if (args.length > 0 && Files.isRegularFile(Path.of(args[0]))) {
             filePath = args[0];
         } else {
             System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");

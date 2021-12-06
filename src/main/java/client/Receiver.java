@@ -17,9 +17,21 @@ import static common.MessageType.SERVER_MSG;
  * а также следить по ним за статусом зарегистрированности пользователя на сервере.
  */
 public class Receiver extends Thread {
+    /**
+     * Клиент, запустивший этот Приёмник.
+     */
     private final Client client;
+    /**
+     * Сокет, используемый для связи с сервером.
+     */
     private final Socket connection;
+    /**
+     * Эфир, из которого поступают сообщения от сервера.
+     */
     private final ObjectInputStream ether;
+    /**
+     * Логировщик, протоколирующий входящие сообщения и события, случающиеся в Приёмнике.
+     */
     private final Logger logger;
 
     /**
@@ -42,19 +54,8 @@ public class Receiver extends Thread {
             try {
                 Message gotMessage = (Message) ether.readObject();
                 display(gotMessage);
+                checkRecipient(gotMessage);
 
-                if (gotMessage.getType() == SERVER_MSG) {            // по адресату широковещательных сообщений судим о регистрированности
-                    String gotName = gotMessage.getAddressee();
-                    boolean namesMatch = client.getUserName().equals(gotName);  // Приёмник запускается только когда userName уже != null
-
-                    if (!client.isRegistered() && namesMatch)
-                        client.setRegistered();
-
-                    if (client.isRegistered() && !namesMatch) {
-                        client.setUserName(gotName);
-                        client.saveSettings();
-                    }
-                }
             } catch (EOFException e) {
                 String info = "Соединение c сервером завершено.";
                 System.out.println(info);
@@ -81,6 +82,31 @@ public class Receiver extends Thread {
             }
         }
         System.out.println("END running Receiver");     // monitor
+    }
+
+    /**
+     * Проверяет, что, если это серверное сообщение, соответствует ли его поле получателя
+     * тому имени, которое стоит у Клиента. Если Клиент зарегистрирован (is registered),
+     * несоответствие означает, что произошла принятая сервером смена имени, — устанавливает
+     * имя получателя из принятого сообщения в качестве имени в Клиенте и пересохраняет файл настроек
+     * с новым именем пользователя. Если же не зарегистрирован, то соответствие означает,
+     * что запрашиваемое имя принято сервером, — устанавливает флажок в Клиенте, что он отныне зарегистрирован.
+     * @param messageToCheck проверяемое сообщение.
+     */
+    private void checkRecipient(Message messageToCheck) {
+
+        if (messageToCheck.getType() != SERVER_MSG) return;
+
+        String gotName = messageToCheck.getAddressee();
+        boolean namesMatch = client.getUserName().equals(gotName);  // Приёмник запускается только когда userName уже != null
+
+        if (!client.isRegistered() && namesMatch)
+            client.setRegistered();
+
+        if (client.isRegistered() && !namesMatch) {
+            client.setUserName(gotName);
+            client.saveSettings();
+        }
     }
 
     /**
