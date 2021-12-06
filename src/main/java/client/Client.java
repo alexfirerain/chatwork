@@ -24,7 +24,6 @@ import java.util.Scanner;
 public class Client {
     private static final String host_default = "localhost";
     private static final int port_default = 7777;
-    private static final Scanner usersInput = new Scanner(System.in);
 
     private final String HUB;
     private final int PORT;
@@ -32,6 +31,9 @@ public class Client {
     private final boolean LOG_INBOUND;
     private final boolean LOG_OUTBOUND;
     private final boolean LOG_EVENTS;
+
+    private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
+
     final Logger logger;
 
     private String userName;
@@ -40,7 +42,7 @@ public class Client {
     /**
      * Сигнализирует совпадение текущего имени пользователя данным на Сервере.
      */
-    private volatile boolean isRegistered = false;
+    private volatile boolean registered = false;
 
     /**
      * Сценарий исполнения Клиента: определить источник настроек и
@@ -150,12 +152,12 @@ public class Client {
             registeringRequest();
 
             // цикл до подтверждения регистрации
-            while (!connection.isClosed() && !isRegistered) {
+            while (!connection.isClosed() && !registered) {
                 String inputName = usersInput.nextLine();
 
                 // если к моменту ввода пользователя регистрация уже состоялась,
                 // введённое отправляется как обычное сообщение
-                if (isRegistered) {
+                if (registered) {
                     send(inputName);
                 } else {
                     if (isAcceptableName(inputName))
@@ -196,7 +198,7 @@ public class Client {
     }
 
     /**
-     * Формирует из полученного текста новое сообщение
+     * Формирует из полученного текста новое сообщение от пользователя
      * и засылает его на чат-сервер.
      * @param inputText введённый пользователем текст.
      * @throws IOException при ошибке исходящего потока.
@@ -216,7 +218,7 @@ public class Client {
      * на чат-сервере.
      */
     public void setRegistered() {
-        isRegistered = true;
+        registered = true;
     }
 
     /**
@@ -225,7 +227,7 @@ public class Client {
      * если вызывался {@code .setRegistered()}.
      */
     public boolean isRegistered() {
-        return isRegistered;
+        return registered;
     }
 
     /**
@@ -259,8 +261,8 @@ public class Client {
      * @param name строка.
      * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
      */
-    private static boolean isAcceptableName(String name) {      // вот сюда-то и нужно добавить проверку на буквенный диапазон
-        return name != null && !name.isBlank();
+    private static boolean isAcceptableName(String name) {
+        return name != null && name.matches("[\\p{L}]+\\d\\s\\w");
     }
 
     /**
@@ -269,7 +271,7 @@ public class Client {
      */
     public void setUserName(String newName) {
         userName = newName;
-        logger.setLogFile(newName + ".log");            // TODO: проверку, чтоб в имени не было недопустимых символов
+        logger.setLogFile(newName + ".log");            // проверку на недопустимые символы в файловой системе ↑
         logger.logEvent("установлено имя: " + newName);
     }
 

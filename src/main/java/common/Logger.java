@@ -61,7 +61,7 @@ public class Logger {
 
         if (!logFile.exists()) try {
             if (logFile.createNewFile()) {
-                System.out.printf("Лог %s создан", fileName);
+                System.out.printf("Лог %s создан%n", fileName);
             }
         } catch (IOException e) {
             System.out.println("Невозможно создать лог. " + e.getMessage());

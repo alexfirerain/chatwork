@@ -12,7 +12,7 @@ import static common.MessageType.SERVER_MSG;
 
 
 /**
- * Нить, предназначенная читать из входящего потока сообщения
+ * Приёмник, предназначенный в отдельной стопке читать из входящего потока сообщения
  * и выдавать их пользователю в консоль в правильном формате,
  * а также следить по ним за статусом зарегистрированности пользователя на сервере.
  */
@@ -83,6 +83,10 @@ public class Receiver extends Thread {
         System.out.println("END running Receiver");     // monitor
     }
 
+    /**
+     * Производит отображение и логирование принятого сообщения.
+     * @param gotMessage принятое сообщение.
+     */
     private void display(Message gotMessage) {
         System.out.println(gotMessage);
         logger.logInbound(gotMessage);
