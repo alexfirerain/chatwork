@@ -125,8 +125,8 @@ public class Message implements Serializable {
 
     /**
      * Создаёт серверное сообщение с заданным текстом для указанного участника.
-     * @param messageText заданный текст.
-     * @param receiver    указанный участник.
+     * @param messageText текст сообщения.
+     * @param receiver    адресат.
      * @return  новое серверное сообщение на указанный адрес с заданным текстом.
      */
     public static Message fromServer(String messageText, String receiver) {

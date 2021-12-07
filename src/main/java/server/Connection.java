@@ -15,6 +15,7 @@ import static common.MessageType.SERVER_MSG;
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
  */
 public class Connection implements Runnable, AutoCloseable {
+    private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
     private final Server host;
     private final Dispatcher dispatcher;
     private final Socket socket;
@@ -59,7 +60,7 @@ public class Connection implements Runnable, AutoCloseable {
             messageReceiver = new ObjectInputStream(socket.getInputStream());
 
             // регистрируем участника
-            dispatcher.registerUser(this);
+            registerUser();
 
             // пока соединено
             while (!socket.isClosed()) {
@@ -67,7 +68,7 @@ public class Connection implements Runnable, AutoCloseable {
                 if (!privateMode) {
                     // иначе: считываем входящие сообщения и передаём их серверу на обработку
                     try {
-                        operateOn(receiveMessage());
+                        dispatcher.operateOn(receiveMessage(), this);
 
                     } catch (SocketException e) {
                         String error = "Соединение закрыто: " + e.getMessage();
@@ -109,11 +110,11 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
+
         if (message.getType() == SERVER_MSG || !logger.isLoggingTransferred())
             logger.logOutbound(message);
-        else {
+        else
             logger.logTransferred(message);
-        }
     }
 
     /**
@@ -140,7 +141,7 @@ public class Connection implements Runnable, AutoCloseable {
             case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации? / нет, убрать его
             case TXT_MSG -> dispatcher.forward(gotMessage);
             case REG_REQUEST -> dispatcher.changeName(sender, this);
-            case LIST_REQUEST -> dispatcher.send(usersListMessage(sender));
+            case LIST_REQUEST -> dispatcher.sendUserList(sender);
             case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
             case SHUT_REQUEST -> dispatcher.getShut(sender, host);
         }
@@ -157,6 +158,24 @@ public class Connection implements Runnable, AutoCloseable {
         for (String user : dispatcher.getUsers())
             report.append("\n").append(user);
         return Message.fromServer(report.toString(), requesting);
+    }
+
+    /**
+     * Проводит регистрацию имени пользователя для данного соединения.
+     */
+    public void registerUser() {
+        try {
+//            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+            String sender = receiveMessage().getSender();
+            while(!dispatcher.addUser(sender, this)) {
+                sendMessage(Message.fromServer(WARN_TXT));
+                sender = receiveMessage().getSender();
+            }
+            exitPrivateMode();
+            dispatcher.greetUser(sender);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
