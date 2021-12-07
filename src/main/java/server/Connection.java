@@ -16,7 +16,14 @@ import static common.MessageType.SERVER_MSG;
  */
 public class Connection implements Runnable, AutoCloseable {
     private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
+    /**
+     * Сервер, установивший это Соединение.
+     */
     private final Server host;
+    /**
+     * Диспетчер сервера, знающий о зарегистрированных участниках и
+     * организующий их коммуникацию.
+     */
     private final Dispatcher dispatcher;
     private final Socket socket;
     private final Logger logger;
@@ -148,19 +155,6 @@ public class Connection implements Runnable, AutoCloseable {
     }
 
     /**
-     * Создаёт новое серверное сообщение, содержащее сведения о подключённых
-     * в текущий момент участниках, адресуя его тому, кто запросил этот список.
-     * @param requesting участник, запросивший список.
-     * @return  серверное сообщение со списком подключённых участников.
-     */
-    private Message usersListMessage(String requesting) {
-        StringBuilder report = new StringBuilder("Подключено участников: " + dispatcher.getUsers().size() + ":");
-        for (String user : dispatcher.getUsers())
-            report.append("\n").append(user);
-        return Message.fromServer(report.toString(), requesting);
-    }
-
-    /**
      * Проводит регистрацию имени пользователя для данного соединения.
      */
     public void registerUser() {
@@ -194,6 +188,6 @@ public class Connection implements Runnable, AutoCloseable {
 
     @Override
     public String toString() {
-        return socket.getInetAddress() + ":" + socket.getLocalPort();
+        return dispatcher.getUserForConnection(this) + "@" + socket.getInetAddress() + ":" + socket.getLocalPort();
     }
 }

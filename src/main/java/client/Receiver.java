@@ -33,6 +33,7 @@ public class Receiver extends Thread {
      * Логировщик, протоколирующий входящие сообщения и события, случающиеся в Приёмнике.
      */
     private final Logger logger;
+    private volatile boolean stopSignalized = false;
 
     /**
      * Создаёт новый Приёмник входящих сообщений для указанного Клиента.
@@ -53,8 +54,8 @@ public class Receiver extends Thread {
         while (!connection.isClosed() && !interrupted()) {
             try {
                 Message gotMessage = (Message) ether.readObject();
+                checkSigns(gotMessage);
                 display(gotMessage);
-                checkRecipient(gotMessage);
 
             } catch (EOFException e) {
                 String info = "Соединение c сервером завершено.";
@@ -85,17 +86,23 @@ public class Receiver extends Thread {
     }
 
     /**
-     * Проверяет, что, если это серверное сообщение, соответствует ли его поле получателя
-     * тому имени, которое стоит у Клиента. Если Клиент зарегистрирован (is registered),
-     * несоответствие означает, что произошла принятая сервером смена имени, — устанавливает
-     * имя получателя из принятого сообщения в качестве имени в Клиенте и пересохраняет файл настроек
-     * с новым именем пользователя. Если же не зарегистрирован, то соответствие означает,
-     * что запрашиваемое имя принято сервером, — устанавливает флажок в Клиенте, что он отныне зарегистрирован.
+     * Проверяет, что, если это серверное сообщение, является ли оно сигналом о завершении работы
+     * — в таком случае ставим флажок, что сигнал на остановку получен.<p>
+     * Затем проверяет, соответствует ли его поле получателя тому имени, которое стоит у Клиента.
+     * Если Клиент зарегистрирован (is registered), несоответствие означает, что произошла
+     * принятая сервером смена имени, — устанавливает имя получателя из принятого сообщения
+     * в качестве имени в Клиенте и пересохраняет файл настроек с новым именем пользователя.
+     * Если же не зарегистрирован, то соответствие означает, что запрашиваемое имя принято сервером,
+     * — устанавливает флажок в Клиенте, что он отныне зарегистрирован.
      * @param messageToCheck проверяемое сообщение.
      */
-    private void checkRecipient(Message messageToCheck) {
+    private void checkSigns(Message messageToCheck) {
 
         if (messageToCheck.getType() != SERVER_MSG) return;
+
+        if (messageToCheck.isStopSignal()) {
+            stopSignalized = true;
+        }
 
         String gotName = messageToCheck.getAddressee();
         boolean namesMatch = client.getUserName().equals(gotName);  // Приёмник запускается только когда userName уже != null
@@ -110,11 +117,17 @@ public class Receiver extends Thread {
     }
 
     /**
-     * Производит отображение и логирование принятого сообщения.
+     * Производит отображение и логирование принятого сообщения
+     * (если это не подтверждение от сервера о получении).
      * @param gotMessage принятое сообщение.
      */
     private void display(Message gotMessage) {
+        if (gotMessage.isAliveSign()) return;
         System.out.println(gotMessage);
         logger.logInbound(gotMessage);
+    }
+
+    public boolean stopSignReceived() {
+        return stopSignalized;
     }
 }

@@ -24,6 +24,7 @@ import java.util.Scanner;
 public class Client {
     private static final String host_default = "localhost";
     private static final int port_default = 7777;
+    private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
 
     private final String HUB;
     private final int PORT;
@@ -32,13 +33,12 @@ public class Client {
     private final boolean LOG_OUTBOUND;
     private final boolean LOG_EVENTS;
 
-    private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
-
     final Logger logger;
 
     private String userName;
     private Socket connection = null;
     private ObjectOutputStream messagesOut = null;
+    private Receiver receiver = null;
     /**
      * Сигнализирует совпадение текущего имени пользователя данным на Сервере.
      */
@@ -91,17 +91,17 @@ public class Client {
         System.out.println("Добро пожаловать в программу для общения!");
         // Определение имени для попытки автоматической регистрации:
         String nameToUse = getUserName();
-        if (!isAcceptableName(nameToUse)) {
+        if (!Message.isAcceptableName(nameToUse)) {
             System.out.println("Введите имя, под которым примете участие в беседе:");
             nameToUse = usersInput.nextLine();
         } else {
             System.out.println("Имя для участия в беседе = " + nameToUse +
                     "\nНажмите <Ввод> для его использования либо введите другое:");
             String inputName = usersInput.nextLine();
-            if (isAcceptableName(inputName))
+            if (Message.isAcceptableName(inputName))
                 nameToUse = inputName;
         }
-        while (!isAcceptableName(nameToUse)) {
+        while (!Message.isAcceptableName(nameToUse)) {
             System.out.println("Введите имя для регистрации:");
             nameToUse = usersInput.nextLine();
         }
@@ -125,7 +125,7 @@ public class Client {
         LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
         LOG_EVENTS = config.getBoolProperty("LOG_EVENTS").orElse(false);
         logger = getLogger();
-        logger.setLogFile(isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
+        logger.setLogFile(Message.isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
     }
 
     /**
@@ -138,7 +138,7 @@ public class Client {
     }
 
     public void connect() {
-        Receiver receiver = null;
+        String error = null;
         try {
             connection = new Socket(HUB, PORT);
             logger.logEvent("Установлено соединение с " + connection);
@@ -160,7 +160,7 @@ public class Client {
                 if (registered) {
                     send(inputName);
                 } else {
-                    if (isAcceptableName(inputName))
+                    if (Message.isAcceptableName(inputName))
                         setUserName(inputName);
                     registeringRequest();
                 }
@@ -170,6 +170,7 @@ public class Client {
             // основной рабочий цикл
             while (!connection.isClosed()) {
                 send(usersInput.nextLine());        // нужно как-то разорвать это ожидание в конце
+                                                    // можно добавить в конец send() ожидание от сервера подтверждения ("нуль-сообщение")
             }
 
 //            logger.logEvent("Завершение работы чат-клиента.");
@@ -177,19 +178,22 @@ public class Client {
 //            logger.stopLogging();
 
         } catch (UnknownHostException e) {
-            String error = "Хаб для подключения не обнаружен: " + e.getMessage();
-            System.out.println(error);
-            logger.logEvent(error);
+            error = "Хаб для подключения не обнаружен: " + e.getMessage();
             e.printStackTrace();
         } catch (IOException e) {
-            String error = "Ошибка соединения: " + e.getMessage();
-            System.out.println(error);
-            logger.logEvent(error);
+            error = "Ошибка соединения: " + e.getMessage();
             e.printStackTrace();
         } catch (InterruptedException e) {
+            error = "Прерывание: " + e.getMessage();
             e.printStackTrace();
         } finally {
-            logger.logEvent("Завершение работы чат-клиента.");
+            if (error != null) {
+                System.out.println(error);
+                logger.logEvent(error);
+            }
+            String event = "Завершение работы чат-клиента.";
+            logger.logEvent(event);
+            System.out.println(event);
             if (receiver != null)
                 receiver.interrupt();
             logger.stopLogging();
@@ -207,8 +211,13 @@ public class Client {
         Message messageToSend = Message.fromClientInput(inputText, userName);
         messagesOut.writeObject(messageToSend);
         logger.logOutbound(messageToSend);
-        if (messageToSend.getType() == MessageType.EXIT_REQUEST) {
-            Thread.sleep(3000);
+        // TODO: дожидаться подтверждения от сервера о получении
+//        if (messageToSend.getType() == MessageType.EXIT_REQUEST) {
+//            Thread.sleep(3000);
+//            connection.close();
+//        }
+        Thread.sleep(700);
+        if(receiver.stopSignReceived()) {
             connection.close();
         }
     }
@@ -254,15 +263,6 @@ public class Client {
         settings.put("LOG_OUTBOUND", String.valueOf(LOG_OUTBOUND));
         settings.put("LOG_EVENTS", String.valueOf(LOG_EVENTS));
         Configurator.writeSettings(settings, settingFile);      // вывести обработку ошибки сюда, чтобы логировать?
-    }
-
-    /**
-     * Сообщает, является ли указанная строка существующей и не пустой.
-     * @param name строка.
-     * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
-     */
-    private static boolean isAcceptableName(String name) {
-        return name != null && name.matches("[\\p{L}]+\\d\\s\\w");
     }
 
     /**

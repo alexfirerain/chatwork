@@ -16,7 +16,9 @@ public class Message implements Serializable {
      */
     final private MessageType type;
     /**
-     * автор сообщения (для регистрирующего сообщения регистрируемое имя), сервер оставляет пустым
+     * автор сообщения (для регистрирующего сообщения регистрируемое имя),
+     * сервер оставляет пустым, а если это условный знак, что сессия закрывается,
+     * то в нём передаётся пустая строка
      */
     final private String sender;
 
@@ -31,9 +33,18 @@ public class Message implements Serializable {
      */
     private String addressee;
     /**
-     * сообщаемая в сообщении строка
+     * сообщаемая в сообщении строка; у служебных сообщений пусто
      */
     final private String message;
+
+    /**
+     * Сообщает, является ли указанная строка существующей и не пустой.
+     * @param name строка.
+     * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
+     */
+    public static boolean isAcceptableName(String name) {
+        return name != null && name.matches("[\\p{L}]+\\d*\\s*");
+    }
 
     /**
      * Устанавливает получателя (используется для широковещательной рассылки).
@@ -151,6 +162,14 @@ public class Message implements Serializable {
         if (putName.startsWith("/reg "))
             putName = putName.substring("/reg ".length()).strip();
         return new Message(REG_REQUEST, putName, null, null);
+    }
+
+    public boolean isStopSignal() {
+        return "".equals(getSender());
+    }
+
+    public boolean isAliveSign() {
+        return sender == null && message == null;
     }
 
     public MessageType getType() {

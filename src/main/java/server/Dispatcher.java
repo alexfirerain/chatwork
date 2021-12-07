@@ -50,11 +50,11 @@ public class Dispatcher {
      * и такое имя на текущий момент не зафиксировано в списке актуальных.
      * @param userName   регистрируемое имя.
      * @param connection регистрируемое соединение.
-     * @return  {@code ложно}, если предлагаемое имя уже зарегистрировано или предлагаются
-     * пустые или никакие имя или соединение; иначе  {@code истинно}.
+     * @return  {@code ложно}, если предлагаемое имя уже зарегистрировано или не является допустимым
+     * или недоступно предлагаемое соединение; иначе  {@code истинно}.
      */
     public boolean addUser(String userName, Connection connection) {
-        if (userName == null || userName.isBlank()
+        if (!Message.isAcceptableName(userName)
                 || connection == null || connection.isClosed()
                 || users.containsKey(userName)) {
             logger.logEvent("Отказ в регистрации имени " + userName + " для " + connection);
@@ -100,7 +100,7 @@ public class Dispatcher {
      * @return  имя участника, на которого зарегистрировано это соединение,
      * или, если такового нет, {@code ничто}.
      */
-    private String getUserForConnection(Connection connection) {
+    public String getUserForConnection(Connection connection) {
         for (Map.Entry<String, Connection> entry : users.entrySet())
             if (entry.getValue() == connection)
                 return entry.getKey();
