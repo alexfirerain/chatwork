@@ -46,13 +46,20 @@ public class Message implements Serializable {
         return name != null && name.matches("[\\p{L}]+\\d*\\s*");
     }
 
+    public static Message stopSign(String recipient) {
+        return new Message(SERVER_MSG, "", recipient, null);
+    }
+
+    public static Message onlineSign(String recipient) {
+        return new Message(SERVER_MSG, null, recipient, null);
+    }
+
     /**
      * Устанавливает получателя (используется для широковещательной рассылки).
      * @param addressee устанавливаемое имя получателя.
      */
     public void setAddressee(String addressee) {
         this.addressee = addressee;
-//        System.out.println("Receiver of the message is set: " + addressee);   // monitor
     }
 
     private Message(MessageType type, String sender, String addressee, String message) {
@@ -65,6 +72,12 @@ public class Message implements Serializable {
 
     @Override
     public String toString() {
+        if (type == SERVER_MSG) {
+            if (sender == null && message == null)
+                return "<KEEP_ALIVE_SIGN>";
+            if ("".equals(sender))
+                return "<STOP_SIGN>";
+        }
         StringBuilder output = new StringBuilder(switch (type) {
             case TXT_MSG -> "";
             case SERVER_MSG -> ">>> Серверное сообщение:\n";

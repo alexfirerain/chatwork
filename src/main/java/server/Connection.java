@@ -137,22 +137,22 @@ public class Connection implements Runnable, AutoCloseable {
         return gotMessage;
     }
 
-    /**
-     * Обрабатывает полученное на сервер (в открытом режиме) сообщение от участника.
-     * @param gotMessage полученное сообщение.
-     */
-    public void operateOn(Message gotMessage) {
-        String sender = gotMessage.getSender();
-
-        switch (gotMessage.getType()) {
-            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации? / нет, убрать его
-            case TXT_MSG -> dispatcher.forward(gotMessage);
-            case REG_REQUEST -> dispatcher.changeName(sender, this);
-            case LIST_REQUEST -> dispatcher.sendUserList(sender);
-            case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
-            case SHUT_REQUEST -> dispatcher.getShut(sender, host);
-        }
-    }
+//    /**
+//     * Обрабатывает полученное на сервер (в открытом режиме) сообщение от участника.
+//     * @param gotMessage полученное сообщение.
+//     */
+//    public void operateOn(Message gotMessage) {
+//        String sender = gotMessage.getSender();
+//
+//        switch (gotMessage.getType()) {
+//            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации? / нет, убрать его
+//            case TXT_MSG -> dispatcher.forward(gotMessage);
+//            case REG_REQUEST -> dispatcher.changeName(sender, this);
+//            case LIST_REQUEST -> dispatcher.sendUserList(sender);
+//            case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
+//            case SHUT_REQUEST -> dispatcher.getShut(sender, host);
+//        }
+//    }
 
     /**
      * Проводит регистрацию имени пользователя для данного соединения.

@@ -236,12 +236,14 @@ public class Dispatcher {
      */
     private boolean disconnect(String username) {
         try {
+            send(Message.stopSign(username));
             getConnectionFor(username).close();
             users.remove(username);
             return true;
         } catch (Exception e) {
             String error = "Не удалось отключить участника: " + username;
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
             return false;
         }
@@ -266,8 +268,20 @@ public class Dispatcher {
             e.printStackTrace();
         }
         invoker.exitPrivateMode();
-        if (server.wordPasses(gotPassword))
+        if (server.wordPasses(gotPassword)) {
+            sendStopSignal(requesting);
             server.stopServer();
+        } else {
+            keepAlive(requesting);
+        }
+    }
+
+    private void keepAlive(String clientName) {
+        send(Message.onlineSign(clientName));
+    }
+
+    private void sendStopSignal(String clientName) {
+        send(Message.stopSign(clientName));
     }
 
     /**
@@ -275,7 +289,7 @@ public class Dispatcher {
      * и отключает их всех.
      */
     public void closeSession() {
-        broadcast(Message.fromServer(CLOSING_TXT));
+        broadcast(Message.fromServer(CLOSING_TXT));     // разослать всем и стоп-сигналы?
         getUsers().forEach(this::disconnect);
     }
 
