@@ -52,36 +52,35 @@ public class Receiver extends Thread {
     @Override
     public void run() {
         while (!connection.isClosed() && !interrupted()) {
+            String info = null;
             try {
                 Message gotMessage = (Message) ether.readObject();
                 checkSigns(gotMessage);
                 display(gotMessage);
 
             } catch (EOFException e) {
-                String info = "Соединение c сервером завершено.";
-                System.out.println(info);
-                logger.logEvent(info);
+                info = "Соединение c сервером завершено.";
 //                e.printStackTrace();
                 try {
                     connection.close();
-                    logger.stopLogging();
                     interrupt();
-//                    break;                          // ?
                 } catch (IOException ex) {
-                    String error = "Ошибка закрытия соединения: " + e.getMessage();
-                    System.out.println(error);
-                    logger.logEvent(error);
+                    info += " Ошибка закрытия соединения: " + e.getMessage();
                     ex.printStackTrace();
                     break;
                 }
             } catch (IOException | ClassNotFoundException e) {
-                String error = "Ошибка получения сообщения: " + e.getMessage();
-                System.out.println(error);
-                logger.logEvent(error);
+                info = "Ошибка получения сообщения: " + e.getMessage();
                 e.printStackTrace();
                 break;
+            } finally {
+                if (info != null) {
+                    System.out.println(info);
+                    logger.logEvent(info);
+                }
             }
         }
+        logger.stopLogging();
         System.out.println("END running Receiver");     // monitor
     }
 
@@ -123,6 +122,10 @@ public class Receiver extends Thread {
      */
     private void display(Message gotMessage) {
         if (gotMessage.isAliveSign()) return;
+        if (gotMessage.isStopSignal()) {
+            logger.logEvent("Получен сигнал о завершении.");
+            if (gotMessage.getMessage() == null) return;
+        }
         System.out.println(gotMessage);
         logger.logInbound(gotMessage);
     }
