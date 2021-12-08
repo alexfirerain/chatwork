@@ -28,6 +28,7 @@ public class Dispatcher {
      * Список участников в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
+    private final Server host;
     private final Logger logger;
 
     /**
@@ -36,6 +37,7 @@ public class Dispatcher {
      */
     public Dispatcher(Server host) {
         users = new ConcurrentHashMap<>();
+        this.host = host;
         logger = host.logger;
     }
 
@@ -48,11 +50,11 @@ public class Dispatcher {
      * и такое имя на текущий момент не зафиксировано в списке актуальных.
      * @param userName   регистрируемое имя.
      * @param connection регистрируемое соединение.
-     * @return  {@code ложно}, если предлагаемое имя уже зарегистрировано или предлагаются
-     * пустые или никакие имя или соединение; иначе  {@code истинно}.
+     * @return  {@code ложно}, если предлагаемое имя уже зарегистрировано или не является допустимым
+     * или недоступно предлагаемое соединение; иначе  {@code истинно}.
      */
     public boolean addUser(String userName, Connection connection) {
-        if (userName == null || userName.isBlank()
+        if (!Message.isAcceptableName(userName)
                 || connection == null || connection.isClosed()
                 || users.containsKey(userName)) {
             logger.logEvent("Отказ в регистрации имени " + userName + " для " + connection);
@@ -98,7 +100,7 @@ public class Dispatcher {
      * @return  имя участника, на которого зарегистрировано это соединение,
      * или, если такового нет, {@code ничто}.
      */
-    private String getUserForConnection(Connection connection) {
+    public String getUserForConnection(Connection connection) {
         for (Map.Entry<String, Connection> entry : users.entrySet())
             if (entry.getValue() == connection)
                 return entry.getKey();
@@ -156,17 +158,8 @@ public class Dispatcher {
     }
 
     /**
-     * Отсылает данное сообщение всем актуальным участникам кроме указанного.
-     * @param message  данное сообщение.
-     * @param username имя участника, которому отсылать не надо.
-     */
-    public void sendToAllBut(Message message, String username) {
-        getUsersBut(username).forEach(user -> sendTo(message, user));
-    }
-
-    /**
-     * Посылает сообщение указанному в нём адресату, либо,
-     * если адресат не указан, всем актуальным участникам (всем явно прописав получателя).
+     * Посылает сообщение указанному в нём адресату, либо, если адресат не указан,
+     * всем актуальным участникам (явно прописав получателей).
      * @param msg посылаемое сообщение.
      */
     public void send(Message msg) {
@@ -182,28 +175,29 @@ public class Dispatcher {
      * @param message рассылаемое сообщение.
      */
     public void forward(Message message) {
-        sendToAllBut(message, message.getSender());
+        getUsersBut(message.getSender())
+                .forEach(user -> sendTo(message, user));
     }
 
-    /**
-     * Проводит регистрацию имени пользователя для данного соединения.
-     * @param connection соединение, используемое для общения с пользователем (в приватном режиме)
-     *                   и привязываемое к полученному от него имени.
-     */
-    public void registerUser(Connection connection) {       // TODO: поскольку блокирующее, перенести в Соединение!
-        try {
-//            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
-            String sender = connection.receiveMessage().getSender();
-            while(!addUser(sender, connection)) {
-                connection.sendMessage(Message.fromServer(WARN_TXT));
-                sender = connection.receiveMessage().getSender();
-            }
-            connection.exitPrivateMode();
-            broadcast(Message.fromServer(greeting(sender)));
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
+//    /**
+//     * Проводит регистрацию имени пользователя для данного соединения.
+//     * @param connection соединение, используемое для общения с пользователем (в приватном режиме)
+//     *                   и привязываемое к полученному от него имени.
+//     */
+//    public void registerUser(Connection connection) {       // TODO: поскольку блокирующее, перенести в Соединение!
+//        try {
+////            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+//            String sender = connection.receiveMessage().getSender();
+//            while(!addUser(sender, connection)) {
+//                connection.sendMessage(Message.fromServer(WARN_TXT));
+//                sender = connection.receiveMessage().getSender();
+//            }
+//            connection.exitPrivateMode();
+//            broadcast(Message.fromServer(greeting(sender)));
+//        } catch (IOException | ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     /**
      * Меняет, если это возможно, регистрированное имя для соединения,
@@ -242,12 +236,14 @@ public class Dispatcher {
      */
     private boolean disconnect(String username) {
         try {
+            send(Message.stopSign(username));
             getConnectionFor(username).close();
             users.remove(username);
             return true;
         } catch (Exception e) {
             String error = "Не удалось отключить участника: " + username;
             System.out.println(error);
+            logger.logEvent(error);
             e.printStackTrace();
             return false;
         }
@@ -272,8 +268,20 @@ public class Dispatcher {
             e.printStackTrace();
         }
         invoker.exitPrivateMode();
-        if (server.wordPasses(gotPassword))
+        if (server.wordPasses(gotPassword)) {
+            sendStopSignal(requesting);
             server.stopServer();
+        } else {
+            keepAlive(requesting);
+        }
+    }
+
+    private void keepAlive(String clientName) {
+        send(Message.onlineSign(clientName));
+    }
+
+    private void sendStopSignal(String clientName) {
+        send(Message.stopSign(clientName));
     }
 
     /**
@@ -281,7 +289,7 @@ public class Dispatcher {
      * и отключает их всех.
      */
     public void closeSession() {
-        broadcast(Message.fromServer(CLOSING_TXT));
+        broadcast(Message.fromServer(CLOSING_TXT));     // разослать всем и стоп-сигналы?
         getUsers().forEach(this::disconnect);
     }
 
@@ -299,5 +307,33 @@ public class Dispatcher {
     private String farewell(String leavingUser) {
         return "%s оставляет беседу."
                 .formatted(leavingUser);
+    }
+
+    public void greetUser(String greeted) {
+        broadcast(Message.fromServer(greeting(greeted)));
+    }
+
+    /**
+     * Отсылает серверное сообщение со сведениями о подключённых
+     * в текущий момент участниках тому, кто запросил этот список.
+     * @param requesting участник, запросивший список.
+     */
+    public void sendUserList(String requesting) {
+        String report = getUsers().stream().map(user -> "\n" + user)
+                .collect(Collectors.joining("", "Подключено участников: " + getUsers().size() + ":", ""));
+        send(Message.fromServer(report, requesting));
+    }
+
+    public void operateOn(Message gotMessage, Connection source) {
+        String sender = gotMessage.getSender();
+
+        switch (gotMessage.getType()) {
+            case TXT_MSG -> forward(gotMessage);
+            case PRIVATE_MSG -> send(gotMessage);
+            case LIST_REQUEST -> sendUserList(sender);
+            case REG_REQUEST -> changeName(sender, source);
+            case EXIT_REQUEST -> goodbyeUser(sender);
+            case SHUT_REQUEST -> getShut(sender, host);
+        }
     }
 }
