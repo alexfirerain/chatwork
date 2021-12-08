@@ -99,7 +99,7 @@ public class Receiver extends Thread {
 
         if (messageToCheck.getType() != SERVER_MSG) return;
 
-        if (messageToCheck.isStopSignal()) {
+        if (messageToCheck.isStopSign()) {
             stopSignalized = true;
         }
 
@@ -122,7 +122,7 @@ public class Receiver extends Thread {
      */
     private void display(Message gotMessage) {
         if (gotMessage.isAliveSign()) return;
-        if (gotMessage.isStopSignal()) {
+        if (gotMessage.isStopSign()) {
             logger.logEvent("Получен сигнал о завершении.");
             if (gotMessage.getMessage() == null) return;
         }
