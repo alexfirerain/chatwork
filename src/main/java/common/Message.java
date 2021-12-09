@@ -177,7 +177,7 @@ public class Message implements Serializable {
         return new Message(REG_REQUEST, putName, null, null);
     }
 
-    public boolean isStopSignal() {
+    public boolean isStopSign() {
         return "".equals(getSender());
     }
 
