@@ -50,6 +50,7 @@ public class Message implements Serializable {
         return new Message(SERVER_MSG, "", recipient, null);
     }
 
+    @Deprecated
     public static Message onlineSign(String recipient) {
         return new Message(SERVER_MSG, null, recipient, null);
     }
@@ -72,12 +73,12 @@ public class Message implements Serializable {
 
     @Override
     public String toString() {
-        if (type == SERVER_MSG) {
-            if (sender == null && message == null)
-                return "<KEEP_ALIVE_SIGN>";
-            if ("".equals(sender))
-                return "<STOP_SIGN>";
-        }
+//        if (type == SERVER_MSG) {
+//            if (isAliveSign())
+//                return "<KEEP_ALIVE_SIGN>";
+//            if (isStopSign())
+//                return "<STOP_SIGN>";
+//        }
         StringBuilder output = new StringBuilder(switch (type) {
             case TXT_MSG -> "";
             case SERVER_MSG -> ">>> Серверное сообщение:\n";
@@ -87,10 +88,16 @@ public class Message implements Serializable {
             case EXIT_REQUEST -> "<EXIT_REQUEST>\n";
             case SHUT_REQUEST -> "<SHUT_REQUEST>\n";
         });
-        if (sender != null)
+
+        if (sender != null) {
             output.append(sender).append(" > ");
+        } else if (isStopSign()) {
+            output.append("<STOP_SIGN> ");
+        }
+
         if (message != null)
             output.append(message);
+
         return output.toString();
     }
 
@@ -181,6 +188,7 @@ public class Message implements Serializable {
         return "".equals(getSender());
     }
 
+    @Deprecated
     public boolean isAliveSign() {
         return sender == null && message == null;
     }

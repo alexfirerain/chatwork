@@ -9,7 +9,7 @@ tasks.withType(JavaCompile) {
 }
 
 group 'ru.netology'
-version '0.1'
+version '0.2'
 
 repositories {
     mavenCentral()

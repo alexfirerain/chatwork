@@ -99,9 +99,7 @@ public class Receiver extends Thread {
 
         if (messageToCheck.getType() != SERVER_MSG) return;
 
-        if (messageToCheck.isStopSign()) {
-            stopSignalized = true;
-        }
+        if (messageToCheck.isStopSign()) stopSignalized = true;
 
         String gotName = messageToCheck.getAddressee();
         boolean namesMatch = client.getUserName().equals(gotName);  // Приёмник запускается только когда userName уже != null
