@@ -17,9 +17,6 @@ import java.util.stream.Collectors;
  * выхода из разговора или команды на остановку сервера.
  */
 public class Dispatcher {
-    private static final String PROMPT_TEXT = "Добро пожаловать в переговорную комнату!\n" +
-            "Введите своё имя (до " + Server.nickLengthLimit + " букв)";
-    private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
     private static final String CHANGE_FAILED = "Сменить имя на такое не получилось!";
     private static final String CLOSING_TXT = "Сервер завершает работу!";
     private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
@@ -119,29 +116,34 @@ public class Dispatcher {
      */
     public void sendTo(Message message, String username) {
         Connection channel = users.get(username);
+        String error = null;
         if (channel != null) {
             try {
                 channel.sendMessage(message);
             } catch (SocketException e) {
-                String error = String.format(
+                error = String.format(
                         "Соединение с участником %s не доступно: %s", username, e.getMessage());
-                System.out.println(error);
                 e.printStackTrace();
-                logger.logEvent(error);
                 goodbyeUser(username);
             } catch (IOException e) {
-                String error = String.format(
+                error = String.format(
                         "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
-                System.out.println(error);
                 e.printStackTrace();
-                logger.logEvent(error);
+            } finally {
+                if (error != null) {
+                    System.out.println(error);
+                    logger.logEvent(error);
+                }
             }
         } else {
-            String error = String.format(
+            error = String.format(
                     "Сообщение не может быть отправлено: участник %s не подключён.", username);
+        }
+        if (error != null) {
             System.out.println(error);
             logger.logEvent(error);
         }
+
     }
 
     /**
@@ -236,7 +238,7 @@ public class Dispatcher {
      */
     private boolean disconnect(String username) {
         try {
-            send(Message.stopSign(username));
+            send(Message.stopSign(username, "Соединение закрывается. Пока!"));
             getConnectionFor(username).close();
             users.remove(username);
             return true;
@@ -249,39 +251,40 @@ public class Dispatcher {
         }
     }
 
-    /**
-     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
-     * и, если получает пароль, совпадающий с установленным на сервере,
-     * запускает остановку сервера.
-     * @param requesting имя участника, запросившего выключение сервера.
-     * @param server     сервер, который должен быть остановлен.
-     */
-    public void getShut(String requesting, Server server) {     // TODO: поскольку блокирующее, перенести в Соединение!
-        Connection invoker = getConnectionFor(requesting);
-        invoker.enterPrivateMode();
-        send(Message.fromServer(PASSWORD_REQUEST, requesting));
-        byte[] gotPassword = new byte[0];
-        try {
-            gotPassword = invoker.receiveMessage()
-                    .getMessage().getBytes();                   // TODO: принимая пароль, подавить логирование
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        invoker.exitPrivateMode();
-        if (server.wordPasses(gotPassword)) {
-            sendStopSignal(requesting);
-            server.stopServer();
-        } else {
-            keepAlive(requesting);
-        }
-    }
+//    /**
+//     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
+//     * и, если получает пароль, совпадающий с установленным на сервере,
+//     * запускает остановку сервера.
+//     * @param requesting имя участника, запросившего выключение сервера.
+//     * @param server     сервер, который должен быть остановлен.
+//     */
+//    public void getShut(String requesting, Server server) {     // TODO: поскольку блокирующее, перенести в Соединение!
+//        Connection invoker = getConnectionFor(requesting);
+//        invoker.enterPrivateMode();
+//        send(Message.fromServer(PASSWORD_REQUEST, requesting));
+//        byte[] gotPassword = new byte[0];
+//        try {
+//            gotPassword = invoker.receiveMessage()
+//                    .getMessage().getBytes();                   // TODO: принимая пароль, подавить логирование
+//        } catch (IOException | ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//        invoker.exitPrivateMode();
+//        if (server.wordPasses(gotPassword)) {
+//            sendStopSignal(requesting);
+//            server.stopServer();
+//        } else {
+//            keepAlive(requesting);
+//        }
+//    }
 
+    @Deprecated
     private void keepAlive(String clientName) {
         send(Message.onlineSign(clientName));
     }
 
-    private void sendStopSignal(String clientName) {
-        send(Message.stopSign(clientName));
+    public void sendStopSignal(String clientName, String message) {
+        send(Message.stopSign(clientName, message));
     }
 
     /**
@@ -333,7 +336,7 @@ public class Dispatcher {
             case LIST_REQUEST -> sendUserList(sender);
             case REG_REQUEST -> changeName(sender, source);
             case EXIT_REQUEST -> goodbyeUser(sender);
-            case SHUT_REQUEST -> getShut(sender, host);
+            case SHUT_REQUEST -> source.getShut();
         }
     }
 }

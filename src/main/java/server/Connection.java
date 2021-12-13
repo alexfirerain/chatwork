@@ -16,6 +16,10 @@ import static common.MessageType.SERVER_MSG;
  */
 public class Connection implements Runnable, AutoCloseable {
     private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
+    private static final String CLOSING_TXT = "Сервер завершает работу!";
+    private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
+    private static final String PROMPT_TEXT = ("Добро пожаловать в переговорную комнату!\n" +
+            "Пишите в беседу свои сообщения и читайте сообщения других участников.");
     /**
      * Сервер, установивший это Соединение.
      */
@@ -169,6 +173,28 @@ public class Connection implements Runnable, AutoCloseable {
             dispatcher.greetUser(sender);
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
+     * и, если получает пароль, совпадающий с установленным на сервере,
+     * запускает остановку сервера.
+     */
+    public void getShut() {
+        enterPrivateMode();
+        String requesting = dispatcher.getUserForConnection(this);
+        byte[] gotPassword = new byte[0];
+        try {
+            sendMessage(Message.fromServer(PASSWORD_REQUEST, requesting));
+            gotPassword = receiveMessage().getMessage().getBytes();    //TODO: принимая пароль, подавить логирование
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        exitPrivateMode();
+        if (host.wordPasses(gotPassword)) {
+            dispatcher.sendStopSignal(requesting, CLOSING_TXT);
+            host.stopServer();
         }
     }
 

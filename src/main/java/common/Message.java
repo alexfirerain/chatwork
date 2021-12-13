@@ -46,8 +46,8 @@ public class Message implements Serializable {
         return name != null && name.matches("[\\p{L}]+\\d*\\s*");
     }
 
-    public static Message stopSign(String recipient) {
-        return new Message(SERVER_MSG, "", recipient, null);
+    public static Message stopSign(String recipient, String message) {
+        return new Message(SERVER_MSG, "", recipient, message);
     }
 
     @Deprecated
