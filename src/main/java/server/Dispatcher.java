@@ -243,11 +243,6 @@ public class Dispatcher {
         }
     }
 
-    @Deprecated
-    private void keepAlive(String clientName) {
-        send(Message.onlineSign(clientName));
-    }
-
     /**
      * Рассылает всем участникам уведомление о завершении работы
      * и отключает их всех.
@@ -257,6 +252,10 @@ public class Dispatcher {
         getUsers().forEach(this::disconnect);
     }
 
+    /**
+     * Уведомляет всех подключённых участников о подключении нового.
+     * @param greeted новозарегистрированное имя.
+     */
     public void greetUser(String greeted) {
         broadcast(Message.fromServer(greeting(greeted)));
     }

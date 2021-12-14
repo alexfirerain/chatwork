@@ -23,7 +23,7 @@ public class Connection implements Runnable, AutoCloseable {
                 /users          = получить список подключённых к переговорной
                 /reg <имя>      = зарегистрироваться под именем
                 /exit           = выйти из комнаты""");
-    private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
+    private static final String WARN_TXT = "Зарегистрировать имя %s не получилось, попробуйте другое!";
     private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
     /**
      * Сервер, установивший это Соединение.
@@ -34,19 +34,30 @@ public class Connection implements Runnable, AutoCloseable {
      * организующий их коммуникацию.
      */
     private final Dispatcher dispatcher;
+    /**
+     * Сокетное соединение, обёрткой для которого служит этот объект.
+     */
     private final Socket socket;
+    /**
+     * Логировщик сервера, используемый для записи событий и сообщений.
+     */
     private final Logger logger;
-
+    /**
+     * Входящий объектный поток от сокета.
+     */
     private ObjectInputStream messageReceiver;
+    /**
+     * Исходящий объектный поток на сокет.
+     */
     private ObjectOutputStream messageSender;
     /**
-     * Показатель, находится ли Соединение в прямом режиме,
-     * то есть что обработка полученного сообщения не должна передаваться Диспетчеру.
-     * С начала установления соединения оно находится в прямом режиме и
+     * Показатель, находится ли Соединение в локальном режиме, то есть что обработка
+     * полученного сообщения не передаётся Диспетчеру, а обрабатывается в локальном методе.
+     * С начала установления соединения оно находится в локальном режиме и
      * выходит из него по успешном окончании регистрации имени участника для себя.
-     * Также переход в прямой режим требуется, когда Соединение ожидает подтверждения пароля. 
+     * Также переход в локальный режим требуется, когда Соединение ожидает подтверждения пароля.
      */
-    private boolean directMode = true;
+    private boolean localMode = true;
 
     /**
      * Создаёт новое Соединение ассоциированного Сервера над указанным Сокетом.
@@ -60,22 +71,11 @@ public class Connection implements Runnable, AutoCloseable {
         this.socket = socket;
     }
 
-    // нужен ли вообще где-то?
-    public void enterDirectMode() {
-        directMode = true;
-    }
-    public void exitDirectMode() {
-        directMode = false;
-    }
     /**
-     * Когда объект, воплощающий интерфейс {@code Runnable}, используется
-     * для создания нити, запуск ({@code start}) нити означает вызов метода
-     * {@code run} этого объекта в отдельно исполняемом потоке.
-     * <p>
-     * Общая договорённость насчёт метода {@code run} такова, что он может
-     * предпринимать какое угодно действие.
-     *
-     * @see Thread#run()
+     * Сценарий исполнения Соединения: получить из сокета исходящий и
+     * входящий потоки, запустить процедуру регистрации, затем начать
+     * ожидание входящих сообщений и, когда-если в глобальном режиме,
+     * передавать их Диспетчеру.
      */
     @Override
     public void run() {
@@ -88,9 +88,9 @@ public class Connection implements Runnable, AutoCloseable {
 
             // пока соединено
             while (!socket.isClosed()) {
-                // если соединение в прямом режиме, новое сообщение обрабатывается локальным методом
-                if (!directMode) {
-                    // иначе: считываем входящие сообщения и передаём их Диспетчеру на обработку
+                // если соединение в локальном режиме: новое сообщение обрабатывается локальным методом
+                if (!localMode) {
+                    // если в глобальном: считываем входящее сообщение и передаём его Диспетчеру на обработку
                     try {
                         dispatcher.operateOn(receiveMessage(), this);
 
@@ -105,7 +105,7 @@ public class Connection implements Runnable, AutoCloseable {
                         System.out.println(error);
                         logger.logEvent(error);
                         e.printStackTrace();
-                        break;
+//                        break;
                     }
                 }
             }
@@ -128,6 +128,24 @@ public class Connection implements Runnable, AutoCloseable {
     }
 
     /**
+     * Проводит регистрацию имени пользователя для данного соединения.
+     */
+    public void registerUser() {
+        try {
+            sendMessage(Message.fromServer(PROMPT_TEXT));
+            String sender = receiveMessage().getSender();
+            while(!dispatcher.addUser(sender, this)) {
+                sendMessage(Message.fromServer(WARN_TXT.formatted(sender)));
+                sender = receiveMessage().getSender();
+            }
+            setGlobalMode();
+            dispatcher.greetUser(sender);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Записывает в исходящий поток объект сообщения.
      * @param message сообщение, которое отсылается.
      * @throws IOException при невозможности записать в поток.
@@ -142,7 +160,7 @@ public class Connection implements Runnable, AutoCloseable {
     }
 
     /**
-     * Получает новый объект сообщения из входящего потока.
+     * Дожидается и отдаёт новый объект сообщения из входящего потока.
      * @return полученное из потока сообщение.
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
@@ -156,48 +174,13 @@ public class Connection implements Runnable, AutoCloseable {
         return gotMessage;
     }
 
-//    /**
-//     * Обрабатывает полученное на сервер (в открытом режиме) сообщение от участника.
-//     * @param gotMessage полученное сообщение.
-//     */
-//    public void operateOn(Message gotMessage) {
-//        String sender = gotMessage.getSender();
-//
-//        switch (gotMessage.getType()) {
-//            case SERVER_MSG, PRIVATE_MSG -> dispatcher.send(gotMessage);        // SERVER возможен? / при регистрации? / нет, убрать его
-//            case TXT_MSG -> dispatcher.forward(gotMessage);
-//            case REG_REQUEST -> dispatcher.changeName(sender, this);
-//            case LIST_REQUEST -> dispatcher.sendUserList(sender);
-//            case EXIT_REQUEST -> dispatcher.goodbyeUser(sender);
-//            case SHUT_REQUEST -> dispatcher.getShut(sender, host);
-//        }
-//    }
-
     /**
-     * Проводит регистрацию имени пользователя для данного соединения.
-     */
-    public void registerUser() {
-        try {
-            sendMessage(Message.fromServer(PROMPT_TEXT));
-            String sender = receiveMessage().getSender();
-            while(!dispatcher.addUser(sender, this)) {
-                sendMessage(Message.fromServer(WARN_TXT));
-                sender = receiveMessage().getSender();
-            }
-            exitDirectMode();
-            dispatcher.greetUser(sender);
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Запрашивает пароль у запросившего выключение участника
-     * и, если получает пароль, совпадающий с установленным на сервере,
-     * запускает остановку сервера.
+     * Процедура подтверждения команды остановки: запрашивает пароль
+     * у запросившего выключение участника и, если получает совпадающий
+     * с установленным на сервере, запускает остановку сервера.
      */
     public void getShut() {
-        enterDirectMode();
+        setLocalMode();
         String requesting = dispatcher.getUserForConnection(this);
         byte[] gotPassword = new byte[0];
         try {
@@ -206,11 +189,26 @@ public class Connection implements Runnable, AutoCloseable {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        exitDirectMode();
+        setGlobalMode();
         if (host.wordPasses(gotPassword)) {
-//            dispatcher.sendStopSignal(requesting, CLOSING_TXT);
             host.stopServer();
         }
+    }
+
+    /*
+        Вспомогательныя функции.
+     */
+    /**
+     * Переводит Соединение в локальный режим.
+     */
+    public void setLocalMode() {
+        localMode = true;
+    }
+    /**
+     * Переводит Соединение в глобальный режим.
+     */
+    public void setGlobalMode() {
+        localMode = false;
     }
 
     /**
