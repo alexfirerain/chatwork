@@ -44,10 +44,11 @@ public class Connection implements Runnable, AutoCloseable {
     public Connection(Server host, Socket socket) {
         this.host = host;
         dispatcher = host.users;
-        this.socket = socket;
         logger = host.logger;
+        this.socket = socket;
     }
 
+    // нужен ли вообще где-то?
     public void enterPrivateMode() {
         privateMode = true;
     }
@@ -163,7 +164,7 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void registerUser() {
         try {
-//            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+            sendMessage(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
                 sendMessage(Message.fromServer(WARN_TXT));
@@ -193,7 +194,7 @@ public class Connection implements Runnable, AutoCloseable {
         }
         exitPrivateMode();
         if (host.wordPasses(gotPassword)) {
-            dispatcher.sendStopSignal(requesting, CLOSING_TXT);
+//            dispatcher.sendStopSignal(requesting, CLOSING_TXT);
             host.stopServer();
         }
     }

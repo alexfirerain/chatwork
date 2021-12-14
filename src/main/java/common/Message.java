@@ -46,8 +46,25 @@ public class Message implements Serializable {
         return name != null && name.matches("[\\p{L}]+\\d*\\s*");
     }
 
+    /**
+     * Создаёт новое серверное сообщение для указанного получателя с пустой строкой
+     * в качестве отправителя (условный сигнал о закрытии соединения).
+     * @param recipient получатель сообщения.
+     * @param message   текст сообщения о завершении работы.
+     * @return  новое стоп-сообщение с заданным текстом для адресата.
+     */
     public static Message stopSign(String recipient, String message) {
         return new Message(SERVER_MSG, "", recipient, message);
+    }
+
+    /**
+     * Создаёт новое серверное сообщение без указания получателя с пустой строкой
+     * в качестве отправителя (условный сигнал о закрытии соединения).
+     * @param message передаваемое сообщение о завершении работы.
+     * @return новое стоп-сообщение с заданным текстом без адресата.
+     */
+    public static Message stopSign(String message) {
+        return new Message(SERVER_MSG, "", null, message);
     }
 
     @Deprecated

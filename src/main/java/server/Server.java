@@ -17,21 +17,55 @@ public class Server {
     private static final byte[] password_default = "0000".getBytes();
     private static final String host_default = "localhost";
 
-    public static final int nickLengthLimit = 15;
+    public static final int nickLengthLimit = 15;        // ? куда его
 
+    /**
+     * Обойма потоков, обрабатывающих подключения.
+     */
     private final ExecutorService connections = Executors.newCachedThreadPool();
+    /**
+     * Адрес сервера.
+     */
     private final String HOST;
+    /**
+     * Серверный порт, на который ожидаются подключения.
+     */
     private final int PORT;
+    /**
+     * Пароль, который открывает доступ к настройкам сервера
+     * (в данной реализации – к команде на остановку).
+     */
     private final byte[] PASSWORD;
+    /**
+     * Производится ли протоколирование принятых на сервер сообщений.
+     */
     private final boolean LOG_INBOUND;
+    /**
+     * Производится ли протоколирование исходящих с сервера сообщений.
+     */
     private final boolean LOG_OUTBOUND;
+    /**
+     * Производится ли протоколирование переправленных сервером сообщений.
+     */
     private final boolean LOG_TRANSFERRED;
+    /**
+     * Производится ли протоколирование ошибок и событий на сервере.
+     */
     private final boolean LOG_EVENTS;
 
+    /**
+     * Диспетчер подключённых пользователей и коммуникации сообщений между ними.
+     */
     final Dispatcher users;
+    /**
+     * Логировщик сообщений и событий, используемый сервером.
+     */
     final Logger logger;
 
-    private boolean running;
+    /**
+     * Работает ли сервер.
+     */
+    private volatile boolean running;       // нужно ли ей быть волатильной?
 
     /**
      * Создаёт новый Сервер с настройками по умолчанию.
@@ -109,14 +143,24 @@ public class Server {
     public static void main(String[] args) {
         Server chatwork = new Server(settingsSource);
         chatwork.listen();
-
+        chatwork.exit();
         System.out.println("END running Server");       // monitor
+    }
+
+    /**
+     * Выполняет процесс остановки Сервера: завершает сессию,
+     * закрывает соединения и останавливает логировщик.
+     */
+    private void exit() {
+        users.closeSession();
+        connections.shutdownNow();
+        logger.stopLogging();
     }
 
     /**
      * Слушает на заданном серверном порту за входящие подключения.
      * Обнаружив таковое, запускает его в новый поток в обойме подключений.
-     * А когда пора завершаться, выполнит остановку и всё погасит.
+     * Повторяет это, пока флажок {@code running} {@code = истинно}.
      */
     public void listen() {
         running = true;
@@ -135,16 +179,12 @@ public class Server {
                     e.printStackTrace();
                 }
             }
-            users.closeSession();
         } catch (IOException e) {
             String error = "Непредвиденное завершение работы: " + e.getMessage();
             System.out.println(error);
             logger.logEvent(error);
             e.printStackTrace();
         }
-
-        connections.shutdownNow();
-        logger.stopLogging();
     }
 
     /**

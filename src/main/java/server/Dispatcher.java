@@ -19,13 +19,11 @@ import java.util.stream.Collectors;
 public class Dispatcher {
     private static final String CHANGE_FAILED = "Сменить имя на такое не получилось!";
     private static final String CLOSING_TXT = "Сервер завершает работу!";
-    private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
 
     /**
      * Список участников в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
-    private final Server host;
     private final Logger logger;
 
     /**
@@ -34,7 +32,6 @@ public class Dispatcher {
      */
     public Dispatcher(Server host) {
         users = new ConcurrentHashMap<>();
-        this.host = host;
         logger = host.logger;
     }
 
@@ -129,11 +126,6 @@ public class Dispatcher {
                 error = String.format(
                         "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
                 e.printStackTrace();
-            } finally {
-                if (error != null) {
-                    System.out.println(error);
-                    logger.logEvent(error);
-                }
             }
         } else {
             error = String.format(
@@ -152,11 +144,11 @@ public class Dispatcher {
      * @param message данное сообщение.
      */
     public void broadcast(Message message) {
+        logger.logOutbound(message);
         getUsers().forEach(user -> {
             message.setAddressee(user);
             sendTo(message, user);
         });
-        logger.logOutbound(message);
     }
 
     /**
@@ -181,26 +173,6 @@ public class Dispatcher {
                 .forEach(user -> sendTo(message, user));
     }
 
-//    /**
-//     * Проводит регистрацию имени пользователя для данного соединения.
-//     * @param connection соединение, используемое для общения с пользователем (в приватном режиме)
-//     *                   и привязываемое к полученному от него имени.
-//     */
-//    public void registerUser(Connection connection) {       // TODO: поскольку блокирующее, перенести в Соединение!
-//        try {
-////            connection.send(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
-//            String sender = connection.receiveMessage().getSender();
-//            while(!addUser(sender, connection)) {
-//                connection.sendMessage(Message.fromServer(WARN_TXT));
-//                sender = connection.receiveMessage().getSender();
-//            }
-//            connection.exitPrivateMode();
-//            broadcast(Message.fromServer(greeting(sender)));
-//        } catch (IOException | ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
     /**
      * Меняет, если это возможно, регистрированное имя для соединения,
      * с которого пришёл такой запрос. Если по какой-то причине это не получается,
@@ -217,7 +189,6 @@ public class Dispatcher {
             send(Message.fromServer(CHANGE_FAILED, oldName));
         }
     }
-
 
 
     /**
@@ -251,40 +222,9 @@ public class Dispatcher {
         }
     }
 
-//    /**
-//     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
-//     * и, если получает пароль, совпадающий с установленным на сервере,
-//     * запускает остановку сервера.
-//     * @param requesting имя участника, запросившего выключение сервера.
-//     * @param server     сервер, который должен быть остановлен.
-//     */
-//    public void getShut(String requesting, Server server) {     // TODO: поскольку блокирующее, перенести в Соединение!
-//        Connection invoker = getConnectionFor(requesting);
-//        invoker.enterPrivateMode();
-//        send(Message.fromServer(PASSWORD_REQUEST, requesting));
-//        byte[] gotPassword = new byte[0];
-//        try {
-//            gotPassword = invoker.receiveMessage()
-//                    .getMessage().getBytes();                   // TODO: принимая пароль, подавить логирование
-//        } catch (IOException | ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        invoker.exitPrivateMode();
-//        if (server.wordPasses(gotPassword)) {
-//            sendStopSignal(requesting);
-//            server.stopServer();
-//        } else {
-//            keepAlive(requesting);
-//        }
-//    }
-
     @Deprecated
     private void keepAlive(String clientName) {
         send(Message.onlineSign(clientName));
-    }
-
-    public void sendStopSignal(String clientName, String message) {
-        send(Message.stopSign(clientName, message));
     }
 
     /**
@@ -292,7 +232,7 @@ public class Dispatcher {
      * и отключает их всех.
      */
     public void closeSession() {
-        broadcast(Message.fromServer(CLOSING_TXT));     // разослать всем и стоп-сигналы?
+        broadcast(Message.stopSign(CLOSING_TXT));
         getUsers().forEach(this::disconnect);
     }
 
