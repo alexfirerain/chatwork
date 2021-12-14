@@ -15,11 +15,16 @@ import static common.MessageType.SERVER_MSG;
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
  */
 public class Connection implements Runnable, AutoCloseable {
+    private static final String PROMPT_TEXT = ("""
+            Добро пожаловать в переговорную комнату!
+            Пишите в беседу свои сообщения и читайте сообщения других участников.
+            Доступные команды:
+                @<имя> <текст>  = личное сообщение собеседнику
+                /users          = получить список подключённых к переговорной
+                /reg <имя>      = зарегистрироваться под именем
+                /exit           = выйти из комнаты""");
     private static final String WARN_TXT = "Зарегистрировать такое имя не получилось!";
-    private static final String CLOSING_TXT = "Сервер завершает работу!";
     private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
-    private static final String PROMPT_TEXT = ("Добро пожаловать в переговорную комнату!\n" +
-            "Пишите в беседу свои сообщения и читайте сообщения других участников.");
     /**
      * Сервер, установивший это Соединение.
      */
@@ -34,7 +39,14 @@ public class Connection implements Runnable, AutoCloseable {
 
     private ObjectInputStream messageReceiver;
     private ObjectOutputStream messageSender;
-    private boolean privateMode = true;
+    /**
+     * Показатель, находится ли Соединение в прямом режиме,
+     * то есть что обработка полученного сообщения не должна передаваться Диспетчеру.
+     * С начала установления соединения оно находится в прямом режиме и
+     * выходит из него по успешном окончании регистрации имени участника для себя.
+     * Также переход в прямой режим требуется, когда Соединение ожидает подтверждения пароля. 
+     */
+    private boolean directMode = true;
 
     /**
      * Создаёт новое Соединение ассоциированного Сервера над указанным Сокетом.
@@ -49,11 +61,11 @@ public class Connection implements Runnable, AutoCloseable {
     }
 
     // нужен ли вообще где-то?
-    public void enterPrivateMode() {
-        privateMode = true;
+    public void enterDirectMode() {
+        directMode = true;
     }
-    public void exitPrivateMode() {
-        privateMode = false;
+    public void exitDirectMode() {
+        directMode = false;
     }
     /**
      * Когда объект, воплощающий интерфейс {@code Runnable}, используется
@@ -76,9 +88,9 @@ public class Connection implements Runnable, AutoCloseable {
 
             // пока соединено
             while (!socket.isClosed()) {
-                // если соединение в приватном режиме, читать из него сообщения будет сам Диспетчер
-                if (!privateMode) {
-                    // иначе: считываем входящие сообщения и передаём их серверу на обработку
+                // если соединение в прямом режиме, новое сообщение обрабатывается локальным методом
+                if (!directMode) {
+                    // иначе: считываем входящие сообщения и передаём их Диспетчеру на обработку
                     try {
                         dispatcher.operateOn(receiveMessage(), this);
 
@@ -112,7 +124,7 @@ public class Connection implements Runnable, AutoCloseable {
 //            }
 //        }
 
-        System.out.println("END running Connection");   // monitor
+        System.out.println("END running Connection " + this);   // monitor
     }
 
     /**
@@ -137,8 +149,10 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
         Message gotMessage = (Message) messageReceiver.readObject();
-        if (gotMessage.getType().ordinal() > 2)
+        if (gotMessage.getType().ordinal() > 2 || !logger.isLoggingTransferred())
             logger.logInbound(gotMessage);
+        else
+            logger.logTransferred(gotMessage);
         return gotMessage;
     }
 
@@ -164,13 +178,13 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void registerUser() {
         try {
-            sendMessage(Message.fromServer(PROMPT_TEXT));   // не нужно, коль скоро провоцирует подключение клиент!
+            sendMessage(Message.fromServer(PROMPT_TEXT));
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
                 sendMessage(Message.fromServer(WARN_TXT));
                 sender = receiveMessage().getSender();
             }
-            exitPrivateMode();
+            exitDirectMode();
             dispatcher.greetUser(sender);
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -178,12 +192,12 @@ public class Connection implements Runnable, AutoCloseable {
     }
 
     /**
-     * Запрашивает (в приватном режиме) пароль у запросившего выключение участника
+     * Запрашивает пароль у запросившего выключение участника
      * и, если получает пароль, совпадающий с установленным на сервере,
      * запускает остановку сервера.
      */
     public void getShut() {
-        enterPrivateMode();
+        enterDirectMode();
         String requesting = dispatcher.getUserForConnection(this);
         byte[] gotPassword = new byte[0];
         try {
@@ -192,7 +206,7 @@ public class Connection implements Runnable, AutoCloseable {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        exitPrivateMode();
+        exitDirectMode();
         if (host.wordPasses(gotPassword)) {
 //            dispatcher.sendStopSignal(requesting, CLOSING_TXT);
             host.stopServer();

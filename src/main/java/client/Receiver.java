@@ -46,7 +46,6 @@ public class Receiver extends Thread {
         connection = client.getConnection();
         ether = new ObjectInputStream(connection.getInputStream());
         logger = client.logger;
-//        setDaemon(true);
     }
 
     @Override
@@ -119,11 +118,11 @@ public class Receiver extends Thread {
      * @param gotMessage принятое сообщение.
      */
     private void display(Message gotMessage) {
-        if (gotMessage.isAliveSign()) return;
-        if (gotMessage.isStopSign()) {
-            logger.logEvent("Получен сигнал о завершении.");
-            if (gotMessage.getMessage() == null) return;
-        }
+//        if (gotMessage.isAliveSign()) return;
+//        if (gotMessage.isStopSign()) {
+//            logger.logEvent("Получен сигнал о завершении.");
+//            if (gotMessage.getMessage() == null) return;
+//        }
         System.out.println(gotMessage);
         logger.logInbound(gotMessage);
     }

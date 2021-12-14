@@ -21,9 +21,12 @@ public class Dispatcher {
     private static final String CLOSING_TXT = "Сервер завершает работу!";
 
     /**
-     * Список участников в виде карты "имя-соединение".
+     * Реестр участников в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
+    /**
+     * Логировщик Сервера, протоколирующий события в этом Диспетчере.
+     */
     private final Logger logger;
 
     /**
@@ -37,15 +40,15 @@ public class Dispatcher {
 
 
     /*
-        Методы работы со списком участников.
+        Методы работы с реестром участников.
      */
     /**
-     * Фиксирует связь данного имени с данным соединением, если имя и соединение существуют,
+     * Фиксирует в реестре связь данного имени с данным соединением, если имя и соединение существуют,
      * и такое имя на текущий момент не зафиксировано в списке актуальных.
      * @param userName   регистрируемое имя.
      * @param connection регистрируемое соединение.
      * @return  {@code ложно}, если предлагаемое имя уже зарегистрировано или не является допустимым
-     * или недоступно предлагаемое соединение; иначе  {@code истинно}.
+     * или недоступно предлагаемое соединение; иначе  {@code истинно} (то есть был ли добавлен элемент в реестр).
      */
     public boolean addUser(String userName, Connection connection) {
         if (!Message.isAcceptableName(userName)
@@ -84,7 +87,7 @@ public class Dispatcher {
      * @return соединение, ассоциированное с участником, либо,
      * если такое имя не найдено, {@code ничто}.
      */
-    public Connection getConnectionFor(String user) {
+    public Connection getConnectionForUser(String user) {
         return users.get(user);
     }
 
@@ -103,9 +106,8 @@ public class Dispatcher {
 
 
     /*
-        Методы отсылки сообщений участникам.
+        Методы отсылки или рассылки сообщений участникам.
      */
-
     /**
      * Отсылает данное сообщение участнику с данным именем.
      * @param message  данное сообщение.
@@ -173,6 +175,26 @@ public class Dispatcher {
                 .forEach(user -> sendTo(message, user));
     }
 
+    /*
+        Методы обработки специальных случаев взаимодействия с клиентом.
+     */
+    /**
+     * Селектор действия в ответ на получение нового сообщения.
+     * @param gotMessage полученное сообщение.
+     * @param source     соединение, с которого пришло это сообщение.
+     */
+    public void operateOn(Message gotMessage, Connection source) {
+        String sender = gotMessage.getSender();
+        switch (gotMessage.getType()) {
+            case TXT_MSG -> forward(gotMessage);
+            case PRIVATE_MSG -> send(gotMessage);
+            case LIST_REQUEST -> sendUserList(sender);
+            case REG_REQUEST -> changeName(sender, source);
+            case EXIT_REQUEST -> goodbyeUser(sender);
+            case SHUT_REQUEST -> source.getShut();
+        }
+    }
+
     /**
      * Меняет, если это возможно, регистрированное имя для соединения,
      * с которого пришёл такой запрос. Если по какой-то причине это не получается,
@@ -189,7 +211,6 @@ public class Dispatcher {
             send(Message.fromServer(CHANGE_FAILED, oldName));
         }
     }
-
 
     /**
      * Отключает указанного участника от беседы: закрывает ассоциированное
@@ -210,7 +231,7 @@ public class Dispatcher {
     private boolean disconnect(String username) {
         try {
             send(Message.stopSign(username, "Соединение закрывается. Пока!"));
-            getConnectionFor(username).close();
+            getConnectionForUser(username).close();
             users.remove(username);
             return true;
         } catch (Exception e) {
@@ -236,22 +257,6 @@ public class Dispatcher {
         getUsers().forEach(this::disconnect);
     }
 
-    /*
-        Методы-генераторы текста серверных уведомлений.
-     */
-    private String greeting(String entrant) {
-        return "К беседе присоединяется %s!"
-                .formatted(entrant);
-    }
-    private String nameChanged(String oldName, String newName) {
-        return "%s меняет имя на %s!"
-                .formatted(oldName, newName);
-    }
-    private String farewell(String leavingUser) {
-        return "%s оставляет беседу."
-                .formatted(leavingUser);
-    }
-
     public void greetUser(String greeted) {
         broadcast(Message.fromServer(greeting(greeted)));
     }
@@ -267,16 +272,19 @@ public class Dispatcher {
         send(Message.fromServer(report, requesting));
     }
 
-    public void operateOn(Message gotMessage, Connection source) {
-        String sender = gotMessage.getSender();
-
-        switch (gotMessage.getType()) {
-            case TXT_MSG -> forward(gotMessage);
-            case PRIVATE_MSG -> send(gotMessage);
-            case LIST_REQUEST -> sendUserList(sender);
-            case REG_REQUEST -> changeName(sender, source);
-            case EXIT_REQUEST -> goodbyeUser(sender);
-            case SHUT_REQUEST -> source.getShut();
-        }
+    /*
+        Методы-генераторы текста серверных уведомлений.
+     */
+    private String greeting(String entrant) {
+        return "К беседе присоединяется %s!"
+                .formatted(entrant);
+    }
+    private String nameChanged(String oldName, String newName) {
+        return "%s меняет имя на %s!"
+                .formatted(oldName, newName);
+    }
+    private String farewell(String leavingUser) {
+        return "%s оставляет беседу."
+                .formatted(leavingUser);
     }
 }

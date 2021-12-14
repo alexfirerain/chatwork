@@ -137,6 +137,12 @@ public class Client {
         return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_EVENTS);
     }
 
+    /**
+     * Основной рабочий цикл Клиента. Подключается к указанному в настройках Чат-Хабу,
+     * инициализирует Приёмник для обработки поступающих от сервера сообщений,
+     * запускает процедуру регистрации в переговорной и начинает отправлять сообщения
+     * на основе введённого в консоль текста, пока соединение не будет закрыто.
+     */
     public void connect() {
         String error = null;
         try {
@@ -150,7 +156,6 @@ public class Client {
 
             // запрос регистрации подготовленного имени
             registeringRequest();
-
             // цикл до подтверждения регистрации
             while (!connection.isClosed() && !registered) {
                 String inputName = usersInput.nextLine();
@@ -169,8 +174,8 @@ public class Client {
 
             // основной рабочий цикл
             while (!connection.isClosed()) {
-                send(usersInput.nextLine());        // нужно как-то разорвать это ожидание в конце
-                                                    // можно добавить в конец send() ожидание от сервера подтверждения ("нуль-сообщение")
+                send(usersInput.nextLine());        // чтобы разорвать это ожидание в конце
+                // в методе .send() есть задержка получить, возможно, сообщение о конце сеанса
             }
 
 //            logger.logEvent("Завершение работы чат-клиента.");
@@ -203,7 +208,7 @@ public class Client {
 
     /**
      * Формирует из полученного текста новое сообщение от пользователя
-     * и засылает его на чат-сервер.
+     * и засылает его на чат-сервер. Затем замирает на 0,7 секунд.
      * @param inputText введённый пользователем текст.
      * @throws IOException при ошибке исходящего потока.
      */
@@ -211,11 +216,7 @@ public class Client {
         Message messageToSend = Message.fromClientInput(inputText, userName);
         messagesOut.writeObject(messageToSend);
         logger.logOutbound(messageToSend);
-        // TODO: дожидаться подтверждения от сервера о получении
-//        if (messageToSend.getType() == MessageType.EXIT_REQUEST) {
-//            Thread.sleep(3000);
-//            connection.close();
-//        }
+        // если стоп-сигнал придёт сразу, закрываемся
         Thread.sleep(700);
         if(receiver.stopSignReceived()) {
             connection.close();
