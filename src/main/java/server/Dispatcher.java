@@ -11,17 +11,17 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static server.TextConstants.*;
+
 /**
  * Реализует логику работы с подключениями: регистрация участников беседы, их учёт,
  * определение, кому какое сообщение отправлять, обработка событий смены имени,
  * выхода из разговора или команды на остановку сервера.
  */
 public class Dispatcher {
-    private static final String CHANGE_FAILED = "Сменить имя на %s не получилось!";
-    private static final String CLOSING_TXT = "Сервер завершает работу!";
 
     /**
-     * Реестр участников в виде карты "имя-соединение".
+     * Реестр зарегистрированных участников беседы в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
     /**
@@ -54,11 +54,11 @@ public class Dispatcher {
         if (!Message.isAcceptableName(userName)
                 || connection == null || connection.isClosed()
                 || users.containsKey(userName)) {
-            logger.logEvent("Отказ в регистрации имени " + userName + " для " + connection);
+            logger.logEvent(REGISTRATION_REJECTED.formatted(userName, connection));
             return false;
         }
         users.put(userName, connection);
-        logger.logEvent("Имя " + userName + " зарегистрировано для " + connection);
+        logger.logEvent(REGISTRATION_SUCCESS.formatted(userName, connection));
         return true;
     }
 
@@ -98,10 +98,10 @@ public class Dispatcher {
      * или, если такового нет, {@code ничто}.
      */
     public String getUserForConnection(Connection connection) {
-        for (Map.Entry<String, Connection> entry : users.entrySet())
-            if (entry.getValue() == connection)
-                return entry.getKey();
-        return null;
+        return users.entrySet().stream()
+                .filter(entry -> entry.getValue() == connection)
+                .findFirst().map(Map.Entry::getKey)
+                .orElse(null);
     }
 
 
@@ -202,11 +202,11 @@ public class Dispatcher {
      * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
      * @param connection соединение, которое требуется переназначить на новое имя.
      */
-    public void changeName(String newName, Connection connection) {     // TODO: поскольку блокирующее, перенести в Соединение!
+    public void changeName(String newName, Connection connection) {
         String oldName = getUserForConnection(connection);
         if (addUser(newName, connection)) {
             users.remove(oldName);
-            broadcast(Message.fromServer(nameChanged(oldName, newName)));
+            broadcast(Message.fromServer(CHANGE_SUCCESS.formatted(oldName, newName)));
         } else {
             send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
         }
@@ -217,7 +217,7 @@ public class Dispatcher {
      * @param greeted новозарегистрированное имя.
      */
     public void greetUser(String greeted) {
-        broadcast(Message.fromServer(greeting(greeted)));
+        broadcast(Message.fromServer(ENTER_USER.formatted(greeted)));
     }
 
     /**
@@ -227,7 +227,7 @@ public class Dispatcher {
      */
     public void goodbyeUser(String username) {
         if (disconnect(username))
-            broadcast(Message.fromServer(farewell(username)));
+            broadcast(Message.fromServer(USER_LEAVING.formatted(username)));
     }
 
     /**
@@ -238,12 +238,12 @@ public class Dispatcher {
      */
     private boolean disconnect(String username) {
         try {
-            send(Message.stopSign(username, "Соединение закрывается. Пока!"));
+            send(Message.stopSign(username, CONNECTION_CLOSING));
             getConnectionForUser(username).close();
             users.remove(username);
             return true;
         } catch (Exception e) {
-            String error = "Не удалось отключить участника: " + username;
+            String error = DISCONNECT_FAILED.formatted(username);
             System.out.println(error);
             logger.logEvent(error);
             e.printStackTrace();
@@ -266,24 +266,19 @@ public class Dispatcher {
      * @param requesting участник, запросивший список.
      */
     public void sendUserList(String requesting) {
-        String report = getUsers().stream().map(user -> "\n" + user)
-                .collect(Collectors.joining("", "Подключено участников: " + getUsers().size() + ":", ""));
-        send(Message.fromServer(report, requesting));
+        send(Message.fromServer(getUserListing(), requesting));
     }
 
-    /*
-        Методы-генераторы текста серверных уведомлений.
-     */
-    private String greeting(String entrant) {
-        return "К беседе присоединяется %s!"
-                .formatted(entrant);
+    public String getUserListing() {
+        return getUsers().stream()
+                .collect(Collectors.joining(
+                        "\n", "Подключено участников: %d:\n".formatted(getUsers().size()), ""));
     }
-    private String nameChanged(String oldName, String newName) {
-        return "%s меняет имя на %s!"
-                .formatted(oldName, newName);
-    }
-    private String farewell(String leavingUser) {
-        return "%s оставляет беседу."
-                .formatted(leavingUser);
-    }
+
+
+
+
 }
+
+
+

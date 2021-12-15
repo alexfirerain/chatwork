@@ -10,21 +10,12 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import static common.MessageType.SERVER_MSG;
+import static server.TextConstants.*;
 
 /**
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.
  */
 public class Connection implements Runnable, AutoCloseable {
-    private static final String PROMPT_TEXT = ("""
-            Добро пожаловать в переговорную комнату!
-            Пишите в беседу свои сообщения и читайте сообщения других участников.
-            Доступные команды:
-                @<имя> <текст>  = личное сообщение собеседнику
-                /users          = получить список подключённых к переговорной
-                /reg <имя>      = зарегистрироваться под именем
-                /exit           = выйти из комнаты""");
-    private static final String WARN_TXT = "Зарегистрировать имя %s не получилось, попробуйте другое!";
-    private static final String PASSWORD_REQUEST = "Введите пароль для управления сервером";
     /**
      * Сервер, установивший это Соединение.
      */
@@ -132,10 +123,10 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void registerUser() {
         try {
-            sendMessage(Message.fromServer(PROMPT_TEXT));
+            sendMessage(Message.fromServer(PROMPT_TEXT.formatted(host.HOST, host.PORT, dispatcher.getUserListing())));
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
-                sendMessage(Message.fromServer(WARN_TXT.formatted(sender)));
+                sendMessage(Message.fromServer(REGISTRATION_WARNING.formatted(sender)));
                 sender = receiveMessage().getSender();
             }
             setGlobalMode();
@@ -227,6 +218,9 @@ public class Connection implements Runnable, AutoCloseable {
 
     @Override
     public String toString() {
-        return dispatcher.getUserForConnection(this) + "@" + socket.getInetAddress() + ":" + socket.getLocalPort();
+        return "%s@%s:%d".formatted(
+                dispatcher.getUserForConnection(this),
+                socket.getInetAddress(),
+                socket.getPort());
     }
 }

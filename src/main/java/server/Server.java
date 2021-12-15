@@ -20,22 +20,22 @@ public class Server {
     public static final int nickLengthLimit = 15;        // ? куда его
 
     /**
-     * Обойма потоков, обрабатывающих подключения.
-     */
-    private final ExecutorService connections = Executors.newCachedThreadPool();
-    /**
      * Адрес сервера.
      */
-    private final String HOST;
+    public final String HOST;
     /**
      * Серверный порт, на который ожидаются подключения.
      */
-    private final int PORT;
+    public final int PORT;
     /**
      * Пароль, который открывает доступ к настройкам сервера
      * (в данной реализации – к команде на остановку).
      */
     private final byte[] PASSWORD;
+    /**
+     * Обойма потоков, обрабатывающих подключения.
+     */
+    private final ExecutorService connections = Executors.newCachedThreadPool();
     /**
      * Производится ли протоколирование принятых на сервер сообщений.
      */
@@ -177,7 +177,7 @@ public class Server {
     }
 
     /**
-     * Выполняет процесс остановки Сервера: завершает сессию,
+     * Выполняет процедуру остановки Сервера: завершает сессию,
      * закрывает соединения и останавливает логировщик.
      */
     private void exit() {
@@ -197,8 +197,8 @@ public class Server {
 
 
     /**
-     * Останавливает сервер, выставляя соответствующий флажок
-     * и создавая фантомное подключение для провокации финальной итерации цикла.
+     * Останавливает сервер путём выход из цикла прослушивания, выставляя соответствующий флажок
+     * и создавая фантомное подключение для провокации финальной итерации.
      */
     public void stopServer() {
         listening = false;

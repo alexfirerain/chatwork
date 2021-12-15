@@ -25,6 +25,7 @@ public class Client {
     private static final String host_default = "localhost";
     private static final int port_default = 7777;
     private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
+    private static final int POST_SENDING_DELAY = 700;
 
     private final String HUB;
     private final int PORT;
@@ -204,7 +205,7 @@ public class Client {
 
     /**
      * Формирует из полученного текста новое сообщение от пользователя
-     * и засылает его на чат-сервер. Затем замирает на 0,7 секунд.
+     * и засылает его на чат-сервер. Затем замирает на некоторое время.
      * @param inputText введённый пользователем текст.
      * @throws IOException при ошибке исходящего потока.
      */
@@ -213,7 +214,7 @@ public class Client {
         messagesOut.writeObject(messageToSend);
         logger.logOutbound(messageToSend);
         // если стоп-сигнал придёт сразу, закрываемся
-        Thread.sleep(700);
+        Thread.sleep(POST_SENDING_DELAY);
         if(receiver.stopSignReceived()) {
             connection.close();
         }
