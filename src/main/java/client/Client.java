@@ -102,7 +102,7 @@ public class Client {
                 nameToUse = inputName;
         }
         while (!Message.isAcceptableName(nameToUse)) {
-            System.out.println("Введите имя для регистрации:");
+            System.out.println("Введите корректное имя для регистрации:");
             nameToUse = usersInput.nextLine();
         }
         setUserName(nameToUse);
@@ -129,8 +129,8 @@ public class Client {
     }
 
     /**
-     * Вспомогательная функция, создающая экземпляр логировщика
-     * с установленными в конструкторе настройками протоколирования.
+     * Вспомогательная функция, создающая экземпляр логировщика для сервера
+     * с теми настройками протоколирования, которые уже заданы в константах сервера.
      * @return экземпляр логера с описанными настройками.
      */
     private Logger getLogger() {
@@ -177,10 +177,6 @@ public class Client {
                 send(usersInput.nextLine());        // чтобы разорвать это ожидание в конце
                 // в методе .send() есть задержка получить, возможно, сообщение о конце сеанса
             }
-
-//            logger.logEvent("Завершение работы чат-клиента.");
-//            receiver.interrupt();
-//            logger.stopLogging();
 
         } catch (UnknownHostException e) {
             error = "Хаб для подключения не обнаружен: " + e.getMessage();
@@ -272,7 +268,7 @@ public class Client {
      */
     public void setUserName(String newName) {
         userName = newName;
-        logger.setLogFile(newName + ".log");            // проверку на недопустимые символы в файловой системе ↑
+        logger.setLogFile(newName + ".log");        // TODO: уточнить проверку на недопустимые символы в файловой системе ↑
         logger.logEvent("установлено имя: " + newName);
     }
 

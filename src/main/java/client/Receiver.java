@@ -59,7 +59,6 @@ public class Receiver extends Thread {
 
             } catch (EOFException e) {
                 info = "Соединение c сервером завершено.";
-//                e.printStackTrace();
                 try {
                     connection.close();
                     interrupt();
@@ -118,11 +117,6 @@ public class Receiver extends Thread {
      * @param gotMessage принятое сообщение.
      */
     private void display(Message gotMessage) {
-//        if (gotMessage.isAliveSign()) return;
-//        if (gotMessage.isStopSign()) {
-//            logger.logEvent("Получен сигнал о завершении.");
-//            if (gotMessage.getMessage() == null) return;
-//        }
         System.out.println(gotMessage);
         logger.logInbound(gotMessage);
     }

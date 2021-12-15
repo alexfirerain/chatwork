@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * выхода из разговора или команды на остановку сервера.
  */
 public class Dispatcher {
-    private static final String CHANGE_FAILED = "Сменить имя на такое не получилось!";
+    private static final String CHANGE_FAILED = "Сменить имя на %s не получилось!";
     private static final String CLOSING_TXT = "Сервер завершает работу!";
 
     /**
@@ -208,8 +208,16 @@ public class Dispatcher {
             users.remove(oldName);
             broadcast(Message.fromServer(nameChanged(oldName, newName)));
         } else {
-            send(Message.fromServer(CHANGE_FAILED, oldName));
+            send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
         }
+    }
+
+    /**
+     * Уведомляет всех подключённых участников о подключении нового.
+     * @param greeted новозарегистрированное имя.
+     */
+    public void greetUser(String greeted) {
+        broadcast(Message.fromServer(greeting(greeted)));
     }
 
     /**
@@ -250,14 +258,6 @@ public class Dispatcher {
     public void closeSession() {
         broadcast(Message.stopSign(CLOSING_TXT));
         getUsers().forEach(this::disconnect);
-    }
-
-    /**
-     * Уведомляет всех подключённых участников о подключении нового.
-     * @param greeted новозарегистрированное имя.
-     */
-    public void greetUser(String greeted) {
-        broadcast(Message.fromServer(greeting(greeted)));
     }
 
     /**

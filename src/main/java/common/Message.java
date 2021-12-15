@@ -38,9 +38,10 @@ public class Message implements Serializable {
     final private String message;
 
     /**
-     * Сообщает, является ли указанная строка существующей и не пустой.
+     * Сообщает, является ли указанная строка существующей и соответствующей требованиям к регистрируемому имени.
      * @param name строка.
-     * @return  {@code истинно}, если строка содержит хотя бы один значимый символ.
+     * @return  {@code истинно}, если строка удовлетворяет регулярке, то есть имеет хотя бы одну букву,
+     * а также любое количество цифр или пробелов.
      */
     public static boolean isAcceptableName(String name) {
         return name != null && name.matches("[\\p{L}]+\\d*\\s*");

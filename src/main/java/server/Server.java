@@ -65,7 +65,7 @@ public class Server {
     /**
      * Работает ли сервер.
      */
-    private volatile boolean running;       // нужно ли ей быть волатильной?
+    private volatile boolean listening;       // нужно ли ей быть волатильной?
 
     /**
      * Создаёт новый Сервер с настройками по умолчанию.
@@ -148,32 +148,21 @@ public class Server {
     }
 
     /**
-     * Выполняет процесс остановки Сервера: завершает сессию,
-     * закрывает соединения и останавливает логировщик.
-     */
-    private void exit() {
-        users.closeSession();
-        connections.shutdownNow();
-        logger.stopLogging();
-    }
-
-    /**
      * Слушает на заданном серверном порту за входящие подключения.
      * Обнаружив таковое, запускает его в новый поток в обойме подключений.
-     * Повторяет это, пока флажок {@code running} {@code = истинно}.
+     * Повторяет это, пока флажок {@code listening} {@code = истинно}.
      */
     public void listen() {
-        running = true;
+        listening = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
-            while (running) {
+            while (listening) {
                 try  {
                     Socket socket = serverSocket.accept();
                     logger.logEvent("connected with " + socket);
-
                     connections.execute(new Connection(this, socket));
 
                 } catch (IOException e) {
-                    String error = "Ошибка получения потоков: " + e.getMessage();
+                    String error = "Ошибка получения соединения: " + e.getMessage();
                     System.out.println(error);
                     logger.logEvent(error);
                     e.printStackTrace();
@@ -185,6 +174,16 @@ public class Server {
             logger.logEvent(error);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Выполняет процесс остановки Сервера: завершает сессию,
+     * закрывает соединения и останавливает логировщик.
+     */
+    private void exit() {
+        users.closeSession();
+        connections.shutdownNow();
+        logger.stopLogging();
     }
 
     /**
@@ -202,7 +201,7 @@ public class Server {
      * и создавая фантомное подключение для провокации финальной итерации цикла.
      */
     public void stopServer() {
-        running = false;
+        listening = false;
         // виртуальное подключение к серверу, чтобы разблокировать его ожидание на порту
         try {
             new Socket(HOST, PORT).close();
