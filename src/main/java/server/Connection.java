@@ -9,7 +9,6 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 
-import static common.MessageType.SERVER_MSG;
 import static server.TextConstants.*;
 
 /**
@@ -102,7 +101,7 @@ public class Connection implements Runnable, AutoCloseable {
             }
 
         } catch (IOException e) {
-            String error = "ошибка получения потоков: " + e.getMessage();
+            String error = "Отсутствие потоков: " + e.getMessage();
             System.out.println(error);
             logger.logEvent(error);
 //            e.printStackTrace();
@@ -123,7 +122,7 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void registerUser() {
         try {
-            sendMessage(Message.fromServer(PROMPT_TEXT.formatted(host.HOST, host.PORT, dispatcher.getUserListing())));
+            sendMessage(Message.fromServer("Соединение с ... " + host.HOST));
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
                 sendMessage(Message.fromServer(REGISTRATION_WARNING.formatted(sender)));
@@ -144,7 +143,7 @@ public class Connection implements Runnable, AutoCloseable {
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
 
-        if (message.getType() == SERVER_MSG || !logger.isLoggingTransferred())
+        if (message.isServerMessage() || !logger.isLoggingTransferred())
             logger.logOutbound(message);
         else
             logger.logTransferred(message);

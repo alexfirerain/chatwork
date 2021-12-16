@@ -21,6 +21,10 @@ import static server.TextConstants.*;
 public class Dispatcher {
 
     /**
+     * Сервер, работающий с Диспетчером.
+     */
+    private final Server host;
+    /**
      * Реестр зарегистрированных участников беседы в виде карты "имя-соединение".
      */
     private final Map<String, Connection> users;
@@ -34,6 +38,7 @@ public class Dispatcher {
      * @param host Сервер, обслуживаемый Диспетчером.
      */
     public Dispatcher(Server host) {
+        this.host = host;
         users = new ConcurrentHashMap<>();
         logger = host.logger;
     }
@@ -110,6 +115,8 @@ public class Dispatcher {
      */
     /**
      * Отсылает данное сообщение участнику с данным именем.
+     * Поле адресата оставляет неизменным.
+     * Логирует только события, но не сообщения.
      * @param message  данное сообщение.
      * @param username данное имя участника.
      */
@@ -143,10 +150,11 @@ public class Dispatcher {
     /**
      * Отсылает данное сообщение всем актуальным участникам,
      * при этом явно добавляя в это сообщение указание получателя.
+     * Логирует сообщение как одну общую рассылку.
      * @param message данное сообщение.
      */
     public void broadcast(Message message) {
-        logger.logOutbound(message);
+        logger.logOutbound(message);                // уточнить, где именно логируются сообщения
         getUsers().forEach(user -> {
             message.setAddressee(user);
             sendTo(message, user);
@@ -160,10 +168,11 @@ public class Dispatcher {
      */
     public void send(Message msg) {
         String addressee = msg.getAddressee();
-        if (addressee == null)
+        if (addressee == null) {
             broadcast(msg);
-        else
+        } else {
             sendTo(msg, addressee);
+        }
     }
 
     /**
@@ -214,10 +223,22 @@ public class Dispatcher {
 
     /**
      * Уведомляет всех подключённых участников о подключении нового.
+     * А новоподключённому высылает привет и инструкцию.
      * @param greeted новозарегистрированное имя.
      */
     public void greetUser(String greeted) {
-        broadcast(Message.fromServer(ENTER_USER.formatted(greeted)));
+        castWithExclusive(Message.fromServer(ENTER_USER.formatted(greeted)), greeted,
+                Message.fromServer(WELCOME_TEXT.formatted(greeted, host.HOST, host.PORT, getUserListing())));
+    }
+
+    private void castWithExclusive(Message generalMessage, String exclusiveOne, Message specialMessage) {
+        logger.logOutbound(generalMessage);
+        getUsersBut(exclusiveOne).forEach(user -> {
+                generalMessage.setAddressee(user);
+                send(generalMessage);
+        });
+        specialMessage.setAddressee(exclusiveOne);
+        send(specialMessage);
     }
 
     /**

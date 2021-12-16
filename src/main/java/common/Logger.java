@@ -84,22 +84,48 @@ public class Logger {
 
     public void logInbound(Message inboundMessage) {
         if (!log_inbound) return;
-        log("получено от " + determineSender(inboundMessage) + ": " + inboundMessage);
+        log(messageToLog("получено", inboundMessage));
     }
 
     public void logOutbound(Message outboundMessage) {
         if (!log_outbound) return;
-        log("отослано от " + determineSender(outboundMessage) + ": " + outboundMessage);
+        log(messageToLog("отослано", outboundMessage));
     }
 
     public void logTransferred(Message transferredMessage) {
         if (!log_transferred) return;
-        log("переправлено от " + determineSender(transferredMessage) + ": " + transferredMessage);
+        log(messageToLog("переправлено", transferredMessage));
     }
 
     public void logEvent(String event) {
         if (!log_events) return;
         log(event);
+    }
+
+
+    private String messageToLog(String prefix, Message message) {
+        StringBuilder logged = new StringBuilder(prefix);
+        logged.append(" от ").append(message.getSender() == null || "".equals(message.getSender()) ?
+                  "сервера" : message.getSender())
+              .append(" для ").append(message.getAddressee() == null ?
+                  (message.isServerMessage() ?
+                          "всех" : "сервера") : message.getAddressee()).append(": ");
+
+        if (message.isStopSign())
+            logged.append(" <STOP_SIGN> ");
+
+        logged.append(switch (message.getType()) {
+            case LIST_REQUEST -> "<LIST_REQUEST>";
+            case REG_REQUEST -> "<REG_REQUEST>";
+            case EXIT_REQUEST -> "<EXIT_REQUEST>";
+            case SHUT_REQUEST -> "<SHUT_REQUEST>";
+            default -> "";
+        });
+
+        if (message.getMessage() != null)
+            logged.append(message.getMessage());
+
+        return logged.toString();
     }
 
     /**
@@ -111,15 +137,12 @@ public class Logger {
     }
 
 
-    private String determineSender(Message message) {
-        return message.getSender() == null ? "сервера" : message.getSender();
-    }
-
     /**
      * Посылает знак прерывания Логописцу, тем самым знаменуя
      * окончание протоколирования событий.
      */
     public void stopLogging() {
+        System.out.println("STOP_LOGGING invoked"); // monitor
         logEvent("Завершение протоколирования.");
         writer.interrupt();
     }

@@ -40,8 +40,13 @@ public class LogWriter extends Thread {
             dormantWriter.lock();
             // пока не остановлен и пока есть ещё очередь
             while (!isInterrupted() || !queue.isEmpty()) {
-                if (queue.isEmpty())
-                    entryReady.awaitUninterruptibly();
+                if (queue.isEmpty()) {
+                    try {
+                        entryReady.await();
+                    } catch (InterruptedException e) {
+                        logSource.logEvent("Прерывание в момент ожидания.");
+                    }
+                }
 
                 String logEntry = queue.poll();
                 if (logEntry != null)

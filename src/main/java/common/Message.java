@@ -206,6 +206,8 @@ public class Message implements Serializable {
         return "".equals(getSender());
     }
 
+    public boolean isServerMessage() { return getType() == SERVER_MSG; }
+
     @Deprecated
     public boolean isAliveSign() {
         return sender == null && message == null;

@@ -1,8 +1,8 @@
 package server;
 
 public class TextConstants {
-    static final String PROMPT_TEXT = ("""
-            Добро пожаловать в переговорную комнату @%s:%d!
+    static final String WELCOME_TEXT = ("""
+            %s, добро пожаловать в переговорную комнату @%s:%d!
             Пишите в беседу свои сообщения и читайте сообщения других участников.
             Доступные команды:
                 /reg <имя>      = зарегистрироваться под именем

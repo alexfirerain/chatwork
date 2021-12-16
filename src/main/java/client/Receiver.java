@@ -95,7 +95,7 @@ public class Receiver extends Thread {
      */
     private void checkSigns(Message messageToCheck) {
 
-        if (messageToCheck.getType() != SERVER_MSG) return;
+        if (!messageToCheck.isServerMessage()) return;
 
         if (messageToCheck.isStopSign()) stopSignalized = true;
 
