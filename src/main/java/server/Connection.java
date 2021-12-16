@@ -89,8 +89,8 @@ public class Connection implements Runnable, AutoCloseable {
                         String error = "Соединение закрыто: " + e.getMessage();
                         System.out.println(error);
                         logger.logEvent(error);
-                        e.printStackTrace();
-                        socket.close();
+//                        e.printStackTrace();
+//                        socket.close();
                     } catch (IOException | ClassNotFoundException e) {
                         String error = "Ошибка обработки сообщения: " + e.getMessage();
                         System.out.println(error);
@@ -105,7 +105,7 @@ public class Connection implements Runnable, AutoCloseable {
             String error = "ошибка получения потоков: " + e.getMessage();
             System.out.println(error);
             logger.logEvent(error);
-            e.printStackTrace();
+//            e.printStackTrace();
         }
 //        finally {
 //            try {

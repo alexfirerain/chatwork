@@ -3,13 +3,11 @@ package client;
 import common.Configurator;
 import common.Logger;
 import common.Message;
-import common.MessageType;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +24,7 @@ public class Client {
     private static final int port_default = 7777;
     private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
     private static final int POST_SENDING_DELAY = 700;
+    public static final String name_default = "";
 
     private final String HUB;
     private final int PORT;
@@ -38,7 +37,7 @@ public class Client {
 
     private String userName;
     private Socket connection = null;
-    private ObjectOutputStream messagesOut = null;
+    private ObjectOutputStream translator = null;
     private Receiver receiver = null;
     /**
      * Сигнализирует совпадение текущего имени пользователя данным на Сервере.
@@ -54,34 +53,14 @@ public class Client {
      */
     public static void main(String[] args) {
         // Определение файла настроек и запуск на его основе нового клиента
-        Client client = new Client(identifySource(args));
+        Client client = new Client(Configurator.identifySource(args, usersInput));
         // Приветствие пользователя, уточнение имени для регистрации
         client.enterUser();
         // Установление соединения с Сервером
         client.connect();
 
+        client.logger.stopLogging();
         System.out.println("END running Client");   // monitor
-    }
-
-    /**
-     * Определяет путь к файлу настроек, который должен использоваться.<p>
-     * В качестве аргумента предполагается массив аргументов, с которым запущена программа.
-     * Если программа запущена без аргументов, или первый аргумент не является адресом существующего файла,
-     * запрашивает у пользователя ввод адреса, пока он не окажется именем существующего файла.
-     * При этом является ли указанный файл действительно корректным файлом настроек – не проверяется.
-     * @param args массив строковых аргументов (переданный программе при запуске).
-     * @return путь к файлу, полученный из аргумента командной строки или из ввода пользователя.
-     */
-    private static Path identifySource(String[] args) {
-        String filePath;
-        do if (args.length > 0 && Files.isRegularFile(Path.of(args[0]))) {
-            filePath = args[0];
-        } else {
-            System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
-            filePath = usersInput.nextLine();
-        } while (!Files.isRegularFile(Path.of(filePath)));
-        System.out.println("Настройки загружены из " + filePath);
-        return Path.of(filePath);
     }
 
     /**
@@ -119,7 +98,7 @@ public class Client {
         Configurator config = new Configurator(filePath);
         HUB = config.getStringProperty("HOST").orElse(host_default);
         PORT = config.getIntProperty("PORT").orElse(port_default);
-        userName = config.getStringProperty("NAME").orElse("");
+        userName = config.getStringProperty("NAME").orElse(name_default);
         settingFile = filePath;
 
         LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
@@ -149,7 +128,7 @@ public class Client {
         try {
             connection = new Socket(HUB, PORT);
             logger.logEvent("Установлено соединение с " + connection);
-            messagesOut = new ObjectOutputStream(connection.getOutputStream());
+            translator = new ObjectOutputStream(connection.getOutputStream());
 
             // в самотекущем Приёмнике слушать входящие сообщения
             receiver = new Receiver(this);
@@ -198,7 +177,7 @@ public class Client {
             System.out.println(event);
             if (receiver != null)
                 receiver.interrupt();
-            logger.stopLogging();
+//            logger.stopLogging();
         }
 
     }
@@ -211,7 +190,7 @@ public class Client {
      */
     private void send(String inputText) throws IOException, InterruptedException {
         Message messageToSend = Message.fromClientInput(inputText, userName);
-        messagesOut.writeObject(messageToSend);
+        translator.writeObject(messageToSend);
         logger.logOutbound(messageToSend);
         // если стоп-сигнал придёт сразу, закрываемся
         Thread.sleep(POST_SENDING_DELAY);
@@ -244,7 +223,7 @@ public class Client {
      */
     public void registeringRequest() throws IOException {
         Message requestForRegistration = Message.registering(userName);
-        messagesOut.writeObject(requestForRegistration);
+        translator.writeObject(requestForRegistration);
         logger.logOutbound(requestForRegistration);
     }
 

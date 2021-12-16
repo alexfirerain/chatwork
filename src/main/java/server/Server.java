@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
     private static final Path settingsSource = Path.of("settings.ini");
@@ -158,7 +159,7 @@ public class Server {
             while (listening) {
                 try  {
                     Socket socket = serverSocket.accept();
-                    logger.logEvent("connected with " + socket);
+                    logger.logEvent("Соединение с " + socket);
                     connections.execute(new Connection(this, socket));
 
                 } catch (IOException e) {
@@ -182,7 +183,14 @@ public class Server {
      */
     private void exit() {
         users.closeSession();
-        connections.shutdownNow();
+        try {
+            if (connections.awaitTermination(3, TimeUnit.SECONDS))
+                logger.logEvent("потоки соединений завершены");    //
+            else
+                logger.logEvent("потоки за три секунды не зашли");  //
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         logger.stopLogging();
     }
 

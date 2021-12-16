@@ -226,7 +226,7 @@ public class Dispatcher {
      * @param username имя участника, покидающего чат.
      */
     public void goodbyeUser(String username) {
-        if (disconnect(username))
+        if (disconnect(username, CONNECTION_CLOSING))
             broadcast(Message.fromServer(USER_LEAVING.formatted(username)));
     }
 
@@ -234,11 +234,12 @@ public class Dispatcher {
      * Отключает указанного участника от беседы: закрывает ассоциированное с ним соединение
      * и удаляет его из реестра участников.
      * @param username имя участника, покидающего чат.
+     * @param farewell текст прощального сообщения отключаемому.
      * @return {@code истинно}, если такой участник был найден и теперь отключён.
      */
-    private boolean disconnect(String username) {
+    private boolean disconnect(String username, String farewell) {
         try {
-            send(Message.stopSign(username, CONNECTION_CLOSING));
+            send(Message.stopSign(username, farewell));
             getConnectionForUser(username).close();
             users.remove(username);
             return true;
@@ -256,8 +257,7 @@ public class Dispatcher {
      * и отключает их всех.
      */
     public void closeSession() {
-        broadcast(Message.stopSign(CLOSING_TXT));
-        getUsers().forEach(this::disconnect);
+        getUsers().forEach(username -> disconnect(username, CLOSING_TXT));
     }
 
     /**
@@ -269,6 +269,10 @@ public class Dispatcher {
         send(Message.fromServer(getUserListing(), requesting));
     }
 
+    /**
+     * Выдаёт текстовое представление реестра зарегистрированных пользователей.
+     * @return сообщение о количестве участников и их имена построчно.
+     */
     public String getUserListing() {
         return getUsers().stream()
                 .collect(Collectors.joining(

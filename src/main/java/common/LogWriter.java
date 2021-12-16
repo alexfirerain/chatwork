@@ -54,8 +54,8 @@ public class LogWriter extends Thread {
             }
         } finally {
             dormantWriter.unlock();
+            System.out.println("END running LogWriter");    // monitor
         }
-        System.out.println("END running LogWriter");    // monitor
     }
 
     /**
@@ -64,6 +64,9 @@ public class LogWriter extends Thread {
      * @param entry текст записи, которую нужно будет залогировать.
      */
     public void placeInQueue(String entry) {
+        if (isInterrupted()) {
+            System.out.println("Записывающий поток уже остановлен!");
+        }
         try {
             dormantWriter.lock();
             queue.add(entry);

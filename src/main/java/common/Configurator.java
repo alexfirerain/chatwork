@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Scanner;
 
 /**
  * Служебный класс для чтения настроек из файла
@@ -51,6 +52,28 @@ public class Configurator {
             settingsMap.put(name, value);
         }
         return settingsMap;
+    }
+
+    /**
+     * Определяет путь к файлу настроек, который должен использоваться.<p>
+     * В качестве аргумента предполагается массив аргументов, с которым запущена программа.
+     * Если программа запущена без аргументов, или первый аргумент не является адресом существующего файла,
+     * запрашивает у пользователя ввод адреса, пока он не окажется именем существующего файла.
+     * При этом является ли указанный файл действительно корректным файлом настроек – не проверяется.
+     * @param args массив строковых аргументов (переданный программе при запуске).
+     * @param usersInput источник ввода (сканер), предоставляемый объектом, использующим Конфигуратор.
+     * @return путь к файлу, полученный из аргумента командной строки или из ввода пользователя.
+     */
+    public static Path identifySource(String[] args, Scanner usersInput) {
+        String filePath;
+        do if (args.length > 0 && Files.isRegularFile(Path.of(args[0]))) {
+            filePath = args[0];
+        } else {
+            System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
+            filePath = usersInput.nextLine();
+        } while (!Files.isRegularFile(Path.of(filePath)));
+        System.out.println("Настройки загружены из " + filePath);
+        return Path.of(filePath);
     }
 
     /**

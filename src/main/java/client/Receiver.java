@@ -78,7 +78,7 @@ public class Receiver extends Thread {
                 }
             }
         }
-        logger.stopLogging();
+//        logger.stopLogging();
         System.out.println("END running Receiver");     // monitor
     }
 

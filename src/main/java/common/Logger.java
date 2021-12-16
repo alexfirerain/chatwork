@@ -114,7 +114,13 @@ public class Logger {
     private String determineSender(Message message) {
         return message.getSender() == null ? "сервера" : message.getSender();
     }
+
+    /**
+     * Посылает знак прерывания Логописцу, тем самым знаменуя
+     * окончание протоколирования событий.
+     */
     public void stopLogging() {
+        logEvent("Завершение протоколирования.");
         writer.interrupt();
     }
 
