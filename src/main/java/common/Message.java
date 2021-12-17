@@ -201,6 +201,8 @@ public class Message implements Serializable {
 
     public boolean isRequest() { return getType().ordinal() > 2; }
 
+    public boolean isTransferrable() { return getType() == TXT_MSG || getType() == PRIVATE_MSG; }
+
     public MessageType getType() {
         return type;
     }

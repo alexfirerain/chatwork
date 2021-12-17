@@ -179,7 +179,7 @@ public class Dispatcher {
      * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
      * @param message рассылаемое сообщение.
      */
-    public void forward(Message message) {
+    public void forward(Message message) {          // TODO: сделать универсальным для всех transferrable
         getUsersBut(message.getSender())
                 .forEach(user -> sendTo(message, user));
     }
