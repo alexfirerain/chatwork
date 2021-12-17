@@ -143,7 +143,7 @@ public class Connection implements Runnable, AutoCloseable {
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
 
-        if (message.isServerMessage() || !logger.isLoggingTransferred())
+        if (message.isServerMessage() || logger.noLoggingTransferred())
             logger.logOutbound(message);
         else
             logger.logTransferred(message);
@@ -157,7 +157,7 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
         Message gotMessage = (Message) messageReceiver.readObject();
-        if (gotMessage.getType().ordinal() > 2 || !logger.isLoggingTransferred())
+        if (gotMessage.isRequest() || logger.noLoggingTransferred())
             logger.logInbound(gotMessage);
         else
             logger.logTransferred(gotMessage);

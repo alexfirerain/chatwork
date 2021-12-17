@@ -153,8 +153,8 @@ public class Logger {
      * если включён учёт исходящих, но выключен учёт пересланных).
      * @return значение по́ля {@code log_transferred}.
      */
-    public boolean isLoggingTransferred() {
-        return log_transferred;
+    public boolean noLoggingTransferred() {
+        return !log_transferred;
     }
 
 }

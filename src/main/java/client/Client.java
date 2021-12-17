@@ -6,6 +6,7 @@ import common.Message;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
@@ -157,6 +158,9 @@ public class Client {
                 send(usersInput.nextLine());        // чтобы разорвать это ожидание в конце
                 // в методе .send() есть задержка получить, возможно, сообщение о конце сеанса
             }
+
+        } catch (ConnectException e) {
+            error = "Сервер не отвечает: " + e.getMessage();
 
         } catch (UnknownHostException e) {
             error = "Хаб для подключения не обнаружен: " + e.getMessage();

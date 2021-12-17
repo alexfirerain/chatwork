@@ -91,12 +91,6 @@ public class Message implements Serializable {
 
     @Override
     public String toString() {
-//        if (type == SERVER_MSG) {
-//            if (isAliveSign())
-//                return "<KEEP_ALIVE_SIGN>";
-//            if (isStopSign())
-//                return "<STOP_SIGN>";
-//        }
         StringBuilder output = new StringBuilder(switch (type) {
             case TXT_MSG -> "";
             case SERVER_MSG -> ">>> Серверное сообщение:\n";
@@ -107,11 +101,8 @@ public class Message implements Serializable {
             case SHUT_REQUEST -> "<SHUT_REQUEST>\n";
         });
 
-        if (sender != null) {
+        if (sender != null)
             output.append(sender).append(" > ");
-        } else if (isStopSign()) {
-            output.append("<STOP_SIGN> ");
-        }
 
         if (message != null)
             output.append(message);
@@ -208,10 +199,7 @@ public class Message implements Serializable {
 
     public boolean isServerMessage() { return getType() == SERVER_MSG; }
 
-    @Deprecated
-    public boolean isAliveSign() {
-        return sender == null && message == null;
-    }
+    public boolean isRequest() { return getType().ordinal() > 2; }
 
     public MessageType getType() {
         return type;
