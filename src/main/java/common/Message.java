@@ -54,7 +54,7 @@ public class Message implements Serializable {
      * @param message   текст сообщения о завершении работы.
      * @return  новое стоп-сообщение с заданным текстом для адресата.
      */
-    public static Message stopSign(String recipient, String message) {
+    public static Message stopSign(String message, String recipient) {
         return new Message(SERVER_MSG, "", recipient, message);
     }
 

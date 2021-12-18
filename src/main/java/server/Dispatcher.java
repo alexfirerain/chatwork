@@ -120,31 +120,63 @@ public class Dispatcher {
      * @param message  данное сообщение.
      * @param username данное имя участника.
      */
-    public void sendTo(Message message, String username) {
+    public void send(Message message, String username) {
         Connection channel = users.get(username);
         String error = null;
         if (channel != null) {
             try {
                 channel.sendMessage(message);
             } catch (SocketException e) {
-                error = String.format(
-                        "Соединение с участником %s не доступно: %s", username, e.getMessage());
+                error = "Соединение с участником %s не доступно: %s".formatted(username, e.getMessage());
                 e.printStackTrace();
                 goodbyeUser(username);
             } catch (IOException e) {
-                error = String.format(
-                        "Сообщение участнику %s не отправилось: %s", username, e.getMessage());
+                error = "Сообщение участнику %s не отправилось: %s".formatted(username, e.getMessage());
                 e.printStackTrace();
             }
         } else {
-            error = String.format(
-                    "Сообщение не может быть отправлено: участник %s не подключён.", username);
+            error = "Сообщение не может быть отправлено: участник %s не подключён.".formatted(username);
         }
         if (error != null) {
             System.out.println(error);
             logger.logEvent(error);
         }
 
+    }
+
+    /**
+     * Посылает сообщение указанному в нём адресату.
+     * Если адресат не указан, игнорирует сообщение.
+     * @param msg посылаемое сообщение.
+     */
+    public void send(Message msg) {
+        String addressee = msg.getAddressee();
+        if (addressee != null) {
+            send(msg, addressee);
+        }
+    }
+
+    /**
+     * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
+     * @param message рассылаемое сообщение.
+     */
+    public void forward(Message message) {
+        if (!message.isTransferrable()) return;
+        logger.logTransferred(message);
+        if (message.getAddressee() == null)
+            getUsersBut(message.getSender()).forEach(user -> send(message, user));
+        else
+            send(message);
+    }
+
+    /**
+     * Выставляет в данном сообщении указанного получателя и отправляет ему это сообщение.
+     * @param message   сообщение, которое отправляется с указанием получателя.
+     * @param addressee адресат, который получит.
+     */
+    public void setAndSend(Message message, String addressee) {
+        message.setAddressee(addressee);
+        send(message);
     }
 
     /**
@@ -155,33 +187,7 @@ public class Dispatcher {
      */
     public void broadcast(Message message) {
         logger.logOutbound(message);                // уточнить, где именно логируются сообщения
-        getUsers().forEach(user -> {
-            message.setAddressee(user);
-            sendTo(message, user);
-        });
-    }
-
-    /**
-     * Посылает сообщение указанному в нём адресату, либо, если адресат не указан,
-     * всем актуальным участникам (явно прописав получателей).
-     * @param msg посылаемое сообщение.
-     */
-    public void send(Message msg) {
-        String addressee = msg.getAddressee();
-        if (addressee == null) {
-            broadcast(msg);
-        } else {
-            sendTo(msg, addressee);
-        }
-    }
-
-    /**
-     * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
-     * @param message рассылаемое сообщение.
-     */
-    public void forward(Message message) {          // TODO: сделать универсальным для всех transferrable
-        getUsersBut(message.getSender())
-                .forEach(user -> sendTo(message, user));
+        getUsers().forEach(user -> setAndSend(message, user));
     }
 
     /*
@@ -195,8 +201,7 @@ public class Dispatcher {
     public void operateOn(Message gotMessage, Connection source) {
         String sender = gotMessage.getSender();
         switch (gotMessage.getType()) {
-            case TXT_MSG -> forward(gotMessage);
-            case PRIVATE_MSG -> send(gotMessage);
+            case TXT_MSG, PRIVATE_MSG -> forward(gotMessage);
             case LIST_REQUEST -> sendUserList(sender);
             case REG_REQUEST -> changeName(sender, source);
             case EXIT_REQUEST -> goodbyeUser(sender);
@@ -231,14 +236,18 @@ public class Dispatcher {
                 Message.fromServer(WELCOME_TEXT.formatted(greeted, host.HOST, host.PORT, getUserListing())));
     }
 
+    /**
+     * Отсылает всем, кроме одного специфицированного, участникам одно сообщение (логируя его как общее,
+     * но явно проставляя получателей), а специфицированному участнику – другое сообщение.
+     * @param generalMessage сообщение, которое отсылается всем, кроме одного.
+     * @param exclusiveOne   имя пользователя, получающего эксклюзивное сообщение.
+     * @param specialMessage специальное сообщение для специфиицрованного получателя.
+     */
     private void castWithExclusive(Message generalMessage, String exclusiveOne, Message specialMessage) {
         logger.logOutbound(generalMessage);
-        getUsersBut(exclusiveOne).forEach(user -> {
-                generalMessage.setAddressee(user);
-                send(generalMessage);
-        });
-        specialMessage.setAddressee(exclusiveOne);
-        send(specialMessage);
+        getUsersBut(exclusiveOne).forEach(user -> setAndSend(generalMessage, user));
+        setAndSend(specialMessage, exclusiveOne);
+        logger.logOutbound(specialMessage);
     }
 
     /**
@@ -260,7 +269,7 @@ public class Dispatcher {
      */
     private boolean disconnect(String username, String farewell) {
         try {
-            send(Message.stopSign(username, farewell));
+            send(Message.stopSign(farewell, username));
             getConnectionForUser(username).close();
             users.remove(username);
             return true;

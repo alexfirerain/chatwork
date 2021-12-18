@@ -143,24 +143,23 @@ public class Connection implements Runnable, AutoCloseable {
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
 
-        if (message.isServerMessage() || logger.noLoggingTransferred())
-            logger.logOutbound(message);
-        else
-            logger.logTransferred(message);
+//        if (message.isServerMessage() || logger.noLoggingTransferred())
+//            logger.logOutbound(message);
+//        else
+//            logger.logTransferred(message);
     }
 
     /**
      * Дожидается и отдаёт новый объект сообщения из входящего потока.
+     * Логирует, если это сообщение-запрос.
      * @return полученное из потока сообщение.
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
     public Message receiveMessage() throws IOException, ClassNotFoundException {
         Message gotMessage = (Message) messageReceiver.readObject();
-        if (gotMessage.isRequest() || logger.noLoggingTransferred())
+        if (gotMessage.isRequest())
             logger.logInbound(gotMessage);
-        else
-            logger.logTransferred(gotMessage);
         return gotMessage;
     }
 
