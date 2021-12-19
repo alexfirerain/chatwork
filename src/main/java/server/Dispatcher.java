@@ -157,8 +157,10 @@ public class Dispatcher {
     }
 
     /**
-     * Пересылает сообщение всем актуальным участникам, кроме пославшего это сообщение.
-     * @param message рассылаемое сообщение.
+     * Если сообщение публичное, рассылает его всем актуальным участникам, кроме его отправителя.
+     * Если сообщение частное, отправляет его адресату.
+     * Логирует сообщение как пересланное.
+     * @param message транслируемое сообщение.
      */
     public void forward(Message message) {
         if (!message.isTransferrable()) return;
@@ -175,19 +177,33 @@ public class Dispatcher {
      * @param addressee адресат, который получит.
      */
     public void setAndSend(Message message, String addressee) {
-        message.setAddressee(addressee);
-        send(message);
+//        message.setAddressee(addressee);
+        send(message.setAddressee(addressee));
     }
 
     /**
-     * Отсылает данное сообщение всем актуальным участникам,
-     * при этом явно добавляя в это сообщение указание получателя.
+     * Отсылает данное (серверное) сообщение всем актуальным участникам,
+     * при этом явно добавляя в него указание получателя.
      * Логирует сообщение как одну общую рассылку.
      * @param message данное сообщение.
      */
     public void broadcast(Message message) {
-        logger.logOutbound(message);                // уточнить, где именно логируются сообщения
-        getUsers().forEach(user -> setAndSend(message, user));
+        logger.logOutbound(message);
+        getUsers().forEach(user -> send(message.setAddressee(user)));
+    }
+
+    /**
+     * Отсылает всем, кроме одного специфицированного, участникам одно сообщение (логируя его как общее,
+     * но явно проставляя получателей), а специфицированному участнику – другое сообщение.
+     * @param generalMessage сообщение, которое отсылается всем, кроме одного.
+     * @param exclusiveOne   имя пользователя, получающего эксклюзивное сообщение.
+     * @param specialMessage специальное сообщение для специфиицрованного получателя.
+     */
+    private void castWithExclusive(Message generalMessage, String exclusiveOne, Message specialMessage) {
+        logger.logOutbound(generalMessage);
+        getUsersBut(exclusiveOne).forEach(user -> send(generalMessage.setAddressee(user)));
+        send(specialMessage.setAddressee(exclusiveOne));
+        logger.logOutbound(specialMessage);
     }
 
     /*
@@ -233,21 +249,7 @@ public class Dispatcher {
      */
     public void greetUser(String greeted) {
         castWithExclusive(Message.fromServer(ENTER_USER.formatted(greeted)), greeted,
-                Message.fromServer(WELCOME_TEXT.formatted(greeted, host.HOST, host.PORT, getUserListing())));
-    }
-
-    /**
-     * Отсылает всем, кроме одного специфицированного, участникам одно сообщение (логируя его как общее,
-     * но явно проставляя получателей), а специфицированному участнику – другое сообщение.
-     * @param generalMessage сообщение, которое отсылается всем, кроме одного.
-     * @param exclusiveOne   имя пользователя, получающего эксклюзивное сообщение.
-     * @param specialMessage специальное сообщение для специфиицрованного получателя.
-     */
-    private void castWithExclusive(Message generalMessage, String exclusiveOne, Message specialMessage) {
-        logger.logOutbound(generalMessage);
-        getUsersBut(exclusiveOne).forEach(user -> setAndSend(generalMessage, user));
-        setAndSend(specialMessage, exclusiveOne);
-        logger.logOutbound(specialMessage);
+                Message.fromServer(welcomeText(greeted)));
     }
 
     /**
@@ -299,9 +301,23 @@ public class Dispatcher {
         send(Message.fromServer(getUserListing(), requesting));
     }
 
+
+    /*
+        Генераторы текста.
+     */
+
+    /**
+     * Выдаёт текстовой блок для приветствия новоподключённого, в котором сообщает адрес сервера,
+     * список подключённых к комнате и перечень доступных команд (кроме команды остановки сервера).
+     * @param greeted новоподкючённый.
+     * @return  форматированный текстовой блок-приветствие.
+     */
+    private String welcomeText(String greeted) {
+        return WELCOME_TEXT.formatted(greeted, host.HOST, host.PORT, getUserListing());
+    }
     /**
      * Выдаёт текстовое представление реестра зарегистрированных пользователей.
-     * @return сообщение о количестве участников и их имена построчно.
+     * @return текстовой блок о количестве участников и их именах.
      */
     public String getUserListing() {
         return getUsers().stream()

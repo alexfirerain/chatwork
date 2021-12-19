@@ -77,8 +77,9 @@ public class Message implements Serializable {
      * Устанавливает получателя (используется для широковещательной рассылки).
      * @param addressee устанавливаемое имя получателя.
      */
-    public void setAddressee(String addressee) {
+    public Message setAddressee(String addressee) {
         this.addressee = addressee;
+        return this;
     }
 
     private Message(MessageType type, String sender, String addressee, String message) {
