@@ -120,7 +120,7 @@ public class Dispatcher {
      * @param message  данное сообщение.
      * @param username данное имя участника.
      */
-    public void send(Message message, String username) {
+    private void send(Message message, String username) {
         Connection channel = users.get(username);
         String error = null;
         if (channel != null) {
@@ -145,22 +145,28 @@ public class Dispatcher {
     }
 
     /**
-     * Посылает сообщение указанному в нём адресату.
+     * Посылает сообщение указанному в нём адресату и заносит его в лог как отправленное.
      * Если адресат не указан, игнорирует сообщение.
      * @param msg посылаемое сообщение.
      */
-    public void send(Message msg) {
+    private void send(Message msg) {
+        send(msg, true);
+    }
+
+    /**
+     * Посылает сообщение указанному в нём адресату.
+     * Если адресат не указан, игнорирует сообщение.
+     * Если указано, логирует сообщение как исходящее.
+     * @param msg   отсылаемое и логируемое сообщение.
+     * @param toLog нужно ли занести отправку в лог.
+     */
+    private void send(Message msg, boolean toLog) {
         String addressee = msg.getAddressee();
         if (addressee != null) {
             send(msg, addressee);
+            if (toLog)
+                logger.logOutbound(msg);
         }
-    }
-
-
-    public void send(Message msg, boolean toLog) {
-        send(msg);
-        if (toLog)
-            logger.logOutbound(msg);
     }
 
     /**
@@ -169,13 +175,13 @@ public class Dispatcher {
      * Логирует сообщение как пересланное.
      * @param message транслируемое сообщение.
      */
-    public void forward(Message message) {
+    private void forward(Message message) {
         if (!message.isTransferrable()) return;
         logger.logTransferred(message);
         if (message.getAddressee() == null)
             getUsersBut(message.getSender()).forEach(user -> send(message, user));
         else
-            send(message);
+            send(message, false);
     }
 
     /**
@@ -184,9 +190,9 @@ public class Dispatcher {
      * Логирует сообщение как одну общую рассылку.
      * @param message данное сообщение.
      */
-    public void broadcast(Message message) {
+    private void broadcast(Message message) {
         logger.logOutbound(message);
-        getUsers().forEach(user -> send(message.setAddressee(user)));
+        getUsers().forEach(user -> send(message.setAddressee(user), false));
     }
 
     /**
@@ -194,13 +200,12 @@ public class Dispatcher {
      * но явно проставляя получателей), а специфицированному участнику – другое сообщение.
      * @param generalMessage сообщение, которое отсылается всем, кроме одного.
      * @param exclusiveOne   имя пользователя, получающего эксклюзивное сообщение.
-     * @param specialMessage специальное сообщение для специфиицрованного получателя.
+     * @param specialMessage специальное сообщение для специфицированного получателя.
      */
     private void castWithExclusive(Message generalMessage, String exclusiveOne, Message specialMessage) {
         logger.logOutbound(generalMessage);
-        getUsersBut(exclusiveOne).forEach(user -> send(generalMessage.setAddressee(user)));
+        getUsersBut(exclusiveOne).forEach(user -> send(generalMessage.setAddressee(user), false));
         send(specialMessage.setAddressee(exclusiveOne));
-        logger.logOutbound(specialMessage);
     }
 
     /*
@@ -229,15 +234,13 @@ public class Dispatcher {
      * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
      * @param connection соединение, которое требуется переназначить на новое имя.
      */
-    public void changeName(String newName, Connection connection) {
+    private void changeName(String newName, Connection connection) {
         String oldName = getUserForConnection(connection);
         if (addUser(newName, connection)) {
             users.remove(oldName);
             broadcast(Message.fromServer(CHANGE_SUCCESS.formatted(oldName, newName)));
         } else {
-            Message failNotice = Message.fromServer(CHANGE_FAILED.formatted(newName), oldName);
-            send(failNotice, true);
-            logger.logOutbound(failNotice);
+            send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
         }
     }
 
@@ -270,9 +273,7 @@ public class Dispatcher {
      */
     private boolean disconnect(String username, String farewell) {
         try {
-            Message disconnectMessage = Message.stopSign(farewell, username);
-            send(disconnectMessage);
-            logger.logOutbound(disconnectMessage);
+            send(Message.stopSign(farewell, username));
             getConnectionForUser(username).close();
             users.remove(username);
             return true;
@@ -298,10 +299,8 @@ public class Dispatcher {
      * в текущий момент участниках тому, кто запросил этот список.
      * @param requesting участник, запросивший список.
      */
-    public void sendUserList(String requesting) {
-        Message response = Message.fromServer(getUserListing(), requesting);
-        send(response);
-        logger.logOutbound(response);
+    private void sendUserList(String requesting) {
+        send(Message.fromServer(getUserListing(), requesting));
     }
 
 
@@ -322,7 +321,7 @@ public class Dispatcher {
      * Выдаёт текстовое представление реестра зарегистрированных пользователей.
      * @return текстовой блок о количестве участников и их именах.
      */
-    public String getUserListing() {
+    private String getUserListing() {
         return getUsers().stream()
                 .collect(Collectors.joining(
                         "\n", "Подключено участников: %d:\n".formatted(getUsers().size()), ""));

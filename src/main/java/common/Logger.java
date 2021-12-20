@@ -75,7 +75,7 @@ public class Logger {
      * и ставит её в очередь к логописцу.
      * @param event текст, который логируется.
      */
-    public void log(String event) {
+    private void log(String event) {
         String logEntry = "%s : %s\n"
                 .formatted(logTime.format(new Date()), event);
 
@@ -103,6 +103,12 @@ public class Logger {
     }
 
 
+    /**
+     * Функция генерации строкового представления сообщения для лога.
+     * @param prefix  каким словом описывается действие над сообщением.
+     * @param message описываемое сообщение.
+     * @return  текстовое представление сведений о сообщении и его содержимого.
+     */
     private String messageToLog(String prefix, Message message) {
         StringBuilder logged = new StringBuilder(prefix);
         logged.append(" от ").append(message.getSender() == null || "".equals(message.getSender()) ?
@@ -145,16 +151,6 @@ public class Logger {
         System.out.println("STOP_LOGGING invoked"); // monitor
         logEvent("Завершение протоколирования.");
         writer.interrupt();
-    }
-
-    /**
-     * Показывает, включён ли в логировщике учёт пересланных сообщений
-     * (чтобы определить, что их следует учитывать как исходящие,
-     * если включён учёт исходящих, но выключен учёт пересланных).
-     * @return значение по́ля {@code log_transferred}.
-     */
-    public boolean noLoggingTransferred() {
-        return !log_transferred;
     }
 
 }

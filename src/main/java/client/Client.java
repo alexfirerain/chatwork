@@ -25,7 +25,7 @@ public class Client {
     private static final int port_default = 7777;
     private static final Scanner usersInput = new Scanner(System.in);   // статик или нет ?!
     private static final int POST_SENDING_DELAY = 700;
-    public static final String name_default = "";
+    private static final String name_default = "";
 
     private final String HUB;
     private final int PORT;
@@ -124,7 +124,7 @@ public class Client {
      * запускает процедуру регистрации в переговорной и начинает отправлять сообщения
      * на основе введённого в консоль текста, пока соединение не будет закрыто.
      */
-    public void connect() {
+    private void connect() {
         String error = null;
         try {
             connection = new Socket(HUB, PORT);
@@ -225,7 +225,7 @@ public class Client {
      * которое текущее в поле {@code userName}.
      * @throws IOException при ошибке исходящего потока.
      */
-    public void registeringRequest() throws IOException {
+    private void registeringRequest() throws IOException {
         Message requestForRegistration = Message.registering(userName);
         translator.writeObject(requestForRegistration);
         logger.logOutbound(requestForRegistration);
@@ -234,7 +234,7 @@ public class Client {
     /**
      * Сбрасывает текущие настройки в связанный файл настроек.
      */
-    void saveSettings() {
+    protected void saveSettings() {
         Map<String, String> settings = new HashMap<>();
         settings.put("HUB", HUB);
         settings.put("PORT", String.valueOf(PORT));

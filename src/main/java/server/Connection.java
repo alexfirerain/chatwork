@@ -8,7 +8,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Arrays;
 
 import static server.TextConstants.*;
 
@@ -82,21 +81,23 @@ public class Connection implements Runnable, AutoCloseable {
                 // если соединение в локальном режиме: новое сообщение обрабатывается локальным методом
                 if (!localMode) {
                     // если в глобальном: считываем входящее сообщение и передаём его Диспетчеру на обработку
+                    String error = null;
                     try {
                         dispatcher.operateOn(receiveMessage(), this);
 
                     } catch (SocketException e) {
-                        String error = "Соединение закрыто: " + e.getMessage();
-                        System.out.println(error);
-                        logger.logEvent(error);
+                        error = "Соединение закрыто: " + e.getMessage();
 //                        e.printStackTrace();
 //                        socket.close();
                     } catch (IOException | ClassNotFoundException e) {
-                        String error = "Ошибка обработки сообщения: " + e.getMessage();
-                        System.out.println(error);
-                        logger.logEvent(error);
+                        error = "Ошибка обработки сообщения: " + e.getMessage();
                         e.printStackTrace();
 //                        break;
+                    } finally {
+                        if (error != null) {
+                            System.out.println(error);
+                            logger.logEvent(error);
+                        }
                     }
                 }
             }
@@ -121,14 +122,17 @@ public class Connection implements Runnable, AutoCloseable {
     /**
      * Проводит регистрацию имени пользователя для данного соединения.
      */
-    public void registerUser() {
+    private void registerUser() {
         try {
-            Message probeMessage = Message.fromServer("Соединение с ... " + host.HOST);
+            Message probeMessage = Message.fromServer("Соединение с ... " + host.HOST, this.toString());
             sendMessage(probeMessage);
             logger.logOutbound(probeMessage);
+
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
-                sendMessage(Message.fromServer(REGISTRATION_WARNING.formatted(sender)));
+                Message warnMessage = Message.fromServer(REGISTRATION_WARNING.formatted(sender), this.toString());
+                sendMessage(warnMessage);
+                logger.logOutbound(warnMessage);
                 sender = receiveMessage().getSender();
             }
             setGlobalMode();
@@ -145,9 +149,6 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
-
-//        if (message.isServerMessage() && message.getAddressee() != null)
-//            logger.logOutbound(message);
     }
 
     /**
@@ -157,7 +158,7 @@ public class Connection implements Runnable, AutoCloseable {
      * @throws IOException если чтение из потока не удаётся.
      * @throws ClassNotFoundException если полученный объект не определяется как сообщение.
      */
-    public Message receiveMessage() throws IOException, ClassNotFoundException {
+    private Message receiveMessage() throws IOException, ClassNotFoundException {
         Message gotMessage = (Message) messageReceiver.readObject();
         if (gotMessage.isRequest())
             logger.logInbound(gotMessage);
@@ -166,8 +167,9 @@ public class Connection implements Runnable, AutoCloseable {
 
     /**
      * Процедура подтверждения команды остановки: запрашивает пароль
-     * у запросившего выключение участника и, если получает совпадающий
-     * с установленным на сервере, запускает остановку сервера.
+     * у запросившего выключение участника и передаёт его серверу как
+     * токен к запросу на остановку сервера.
+     * Сообщения логируются, полученный пароль маскируется.
      */
     public void getShut() {
         setLocalMode();
@@ -184,24 +186,22 @@ public class Connection implements Runnable, AutoCloseable {
             e.printStackTrace();
         }
         setGlobalMode();
-        if (host.wordPasses(gotPassword)) {
-            host.stopServer();
-        }
+        host.stopServer(gotPassword);
     }
 
     /*
-        Вспомогательныя функции.
+        Вспомогательные функции.
      */
     /**
      * Переводит Соединение в локальный режим.
      */
-    public void setLocalMode() {
+    private void setLocalMode() {
         localMode = true;
     }
     /**
      * Переводит Соединение в глобальный режим.
      */
-    public void setGlobalMode() {
+    private void setGlobalMode() {
         localMode = false;
     }
 

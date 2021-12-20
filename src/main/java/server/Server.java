@@ -64,7 +64,7 @@ public class Server {
     final Logger logger;
 
     /**
-     * Работает ли сервер.
+     * Работает ли сервер на приём подключений.
      */
     private volatile boolean listening;       // нужно ли ей быть волатильной?
 
@@ -153,7 +153,7 @@ public class Server {
      * Обнаружив таковое, запускает его в новый поток в обойме подключений.
      * Повторяет это, пока флажок {@code listening} {@code = истинно}.
      */
-    public void listen() {
+    private void listen() {
         listening = true;
         try (final ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (listening) {
@@ -194,21 +194,15 @@ public class Server {
         logger.stopLogging();
     }
 
-    /**
-     * Сообщает, совпадает ли переданный пароль с установленным.
-     * @param password переданный пароль.
-     * @return {@code истинно}, если переданный пароль побайтово совпал с заданным.
-     */
-    public boolean wordPasses(byte[] password) {
-        return Arrays.equals(PASSWORD, password);
-    }
-
 
     /**
-     * Останавливает сервер путём выход из цикла прослушивания, выставляя соответствующий флажок
+     * Проверяет, подходит ли полученный пароль, и, если да, то останавливает сервер
+     * путём выход из цикла прослушивания, выставляя соответствующий флажок
      * и создавая фантомное подключение для провокации финальной итерации.
+     * @param gotPassword байты, соответствующие паролю.
      */
-    public void stopServer() {
+    public void stopServer(byte[] gotPassword) {
+        if (!Arrays.equals(PASSWORD, gotPassword)) return;
         listening = false;
         // виртуальное подключение к серверу, чтобы разблокировать его ожидание на порту
         try {
