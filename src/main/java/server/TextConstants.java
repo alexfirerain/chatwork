@@ -1,5 +1,7 @@
 package server;
 
+import java.util.Arrays;
+
 public class TextConstants {
     static final String WELCOME_TEXT = ("""
             %s, добро пожаловать в переговорную комнату @%s:%d!
@@ -26,4 +28,5 @@ public class TextConstants {
     public static final String USER_LEAVING = "%s оставляет беседу.";
     public static final String CONNECTION_CLOSING = "Соединение закрывается. Пока!";
     public static final String DISCONNECT_FAILED = "Не удалось отключить участника: %s";
+
 }

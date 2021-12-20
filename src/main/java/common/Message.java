@@ -59,35 +59,28 @@ public class Message implements Serializable {
     }
 
     /**
-     * Создаёт новое серверное сообщение без указания получателя с пустой строкой
-     * в качестве отправителя (условный сигнал о закрытии соединения).
-     * @param message передаваемое сообщение о завершении работы.
-     * @return новое стоп-сообщение с заданным текстом без адресата.
-     */
-    public static Message stopSign(String message) {
-        return new Message(SERVER_MSG, "", null, message);
-    }
-
-    @Deprecated
-    public static Message onlineSign(String recipient) {
-        return new Message(SERVER_MSG, null, recipient, null);
-    }
-
-    /**
-     * Устанавливает получателя (используется для широковещательной рассылки).
+     * Устанавливает получателя (используется для широковещательной рассылки)
+     * и возвращает то же сообщение с изменённым полем.
      * @param addressee устанавливаемое имя получателя.
+     * @return сообщение с установленным адресатом.
      */
     public Message setAddressee(String addressee) {
         this.addressee = addressee;
         return this;
     }
 
+    /**
+     * Внутренний конструктор сообщения через явное указание параметров.
+     * @param type      тип сообщения.
+     * @param sender    отправитель сообщения.
+     * @param addressee адресат сообщения.
+     * @param message   текст сообщения.
+     */
     private Message(MessageType type, String sender, String addressee, String message) {
         this.type = type;
         this.sender = sender;
         this.addressee = addressee;
         this.message = message;
-//        System.out.printf("[%s]%n", this);        // monitor
     }
 
     @Override

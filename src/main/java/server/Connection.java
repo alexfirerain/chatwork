@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
 
 import static server.TextConstants.*;
 
@@ -122,7 +123,9 @@ public class Connection implements Runnable, AutoCloseable {
      */
     public void registerUser() {
         try {
-            sendMessage(Message.fromServer("Соединение с ... " + host.HOST));
+            Message probeMessage = Message.fromServer("Соединение с ... " + host.HOST);
+            sendMessage(probeMessage);
+            logger.logOutbound(probeMessage);
             String sender = receiveMessage().getSender();
             while(!dispatcher.addUser(sender, this)) {
                 sendMessage(Message.fromServer(REGISTRATION_WARNING.formatted(sender)));
@@ -143,10 +146,8 @@ public class Connection implements Runnable, AutoCloseable {
     public void sendMessage(Message message) throws IOException {
         messageSender.writeObject(message);
 
-//        if (message.isServerMessage() || logger.noLoggingTransferred())
+//        if (message.isServerMessage() && message.getAddressee() != null)
 //            logger.logOutbound(message);
-//        else
-//            logger.logTransferred(message);
     }
 
     /**
@@ -173,8 +174,12 @@ public class Connection implements Runnable, AutoCloseable {
         String requesting = dispatcher.getUserForConnection(this);
         byte[] gotPassword = new byte[0];
         try {
-            sendMessage(Message.fromServer(PASSWORD_REQUEST, requesting));
-            gotPassword = receiveMessage().getMessage().getBytes();    //TODO: принимая пароль, подавить логирование
+            Message passwordRequest = Message.fromServer(PASSWORD_REQUEST, requesting);
+            sendMessage(passwordRequest);
+            logger.logOutbound(passwordRequest);
+            gotPassword = receiveMessage().getMessage().getBytes();
+            // пароль не логируется
+            logger.logInbound(Message.fromClientInput("<****word>", requesting));
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

@@ -156,6 +156,13 @@ public class Dispatcher {
         }
     }
 
+
+    public void send(Message msg, boolean toLog) {
+        send(msg);
+        if (toLog)
+            logger.logOutbound(msg);
+    }
+
     /**
      * Если сообщение публичное, рассылает его всем актуальным участникам, кроме его отправителя.
      * Если сообщение частное, отправляет его адресату.
@@ -169,16 +176,6 @@ public class Dispatcher {
             getUsersBut(message.getSender()).forEach(user -> send(message, user));
         else
             send(message);
-    }
-
-    /**
-     * Выставляет в данном сообщении указанного получателя и отправляет ему это сообщение.
-     * @param message   сообщение, которое отправляется с указанием получателя.
-     * @param addressee адресат, который получит.
-     */
-    public void setAndSend(Message message, String addressee) {
-//        message.setAddressee(addressee);
-        send(message.setAddressee(addressee));
     }
 
     /**
@@ -238,7 +235,9 @@ public class Dispatcher {
             users.remove(oldName);
             broadcast(Message.fromServer(CHANGE_SUCCESS.formatted(oldName, newName)));
         } else {
-            send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
+            Message failNotice = Message.fromServer(CHANGE_FAILED.formatted(newName), oldName);
+            send(failNotice, true);
+            logger.logOutbound(failNotice);
         }
     }
 
@@ -271,7 +270,9 @@ public class Dispatcher {
      */
     private boolean disconnect(String username, String farewell) {
         try {
-            send(Message.stopSign(farewell, username));
+            Message disconnectMessage = Message.stopSign(farewell, username);
+            send(disconnectMessage);
+            logger.logOutbound(disconnectMessage);
             getConnectionForUser(username).close();
             users.remove(username);
             return true;
@@ -293,12 +294,14 @@ public class Dispatcher {
     }
 
     /**
-     * Отсылает серверное сообщение со сведениями о подключённых
+     * Отсылает и логирует серверное сообщение со сведениями о подключённых
      * в текущий момент участниках тому, кто запросил этот список.
      * @param requesting участник, запросивший список.
      */
     public void sendUserList(String requesting) {
-        send(Message.fromServer(getUserListing(), requesting));
+        Message response = Message.fromServer(getUserListing(), requesting);
+        send(response);
+        logger.logOutbound(response);
     }
 
 
