@@ -114,9 +114,9 @@ public class Dispatcher {
         Методы отсылки или рассылки сообщений участникам.
      */
     /**
-     * Отсылает данное сообщение участнику с данным именем.
-     * Поле адресата оставляет неизменным.
-     * Логирует только события, но не сообщения.
+     * Отсылает данное сообщение участнику с данным именем. Поле адресата оставляет неизменным.
+     * Логирует только события, но не сообщения. В конечном итоге все сообщения отправляются
+     * из Диспетчера через этот метод, который уже обращается к исходящему потоку нужного соединения.
      * @param message  данное сообщение.
      * @param username данное имя участника.
      */
@@ -212,7 +212,9 @@ public class Dispatcher {
         Методы обработки специальных случаев взаимодействия с клиентом.
      */
     /**
-     * Селектор действия в ответ на получение нового сообщения.
+     * Селектор действия в ответ на получение нового сообщения. Официальный метод взаимодействия
+     * Диспетчера с сообщениями: получает сообщение и ссылку на соединение-источник.
+     * Производит над сообщением ту или иную процедуру в зависимости от его типа.
      * @param gotMessage полученное сообщение.
      * @param source     соединение, с которого пришло это сообщение.
      */
@@ -228,20 +230,11 @@ public class Dispatcher {
     }
 
     /**
-     * Меняет, если это возможно, регистрированное имя для соединения,
-     * с которого пришёл такой запрос. Если по какой-то причине это не получается,
-     * шлёт запросившему об этом уведомление.
-     * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
-     * @param connection соединение, которое требуется переназначить на новое имя.
+     * Рассылает всем участникам уведомление о завершении работы
+     * и отключает их всех.
      */
-    private void changeName(String newName, Connection connection) {
-        String oldName = getUserForConnection(connection);
-        if (addUser(newName, connection)) {
-            users.remove(oldName);
-            broadcast(Message.fromServer(CHANGE_SUCCESS.formatted(oldName, newName)));
-        } else {
-            send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
-        }
+    public void closeSession() {
+        getUsers().forEach(username -> disconnect(username, CLOSING_TXT));
     }
 
     /**
@@ -265,6 +258,23 @@ public class Dispatcher {
     }
 
     /**
+     * Меняет, если это возможно, регистрированное имя для соединения,
+     * с которого пришёл такой запрос. Если по какой-то причине это не получается,
+     * шлёт запросившему об этом уведомление.
+     * @param newName    имя, под которым хочет перерегистрироваться зарегистрированный пользователь.
+     * @param connection соединение, которое требуется переназначить на новое имя.
+     */
+    private void changeName(String newName, Connection connection) {
+        String oldName = getUserForConnection(connection);
+        if (addUser(newName, connection)) {
+            users.remove(oldName);
+            broadcast(Message.fromServer(CHANGE_SUCCESS.formatted(oldName, newName)));
+        } else {
+            send(Message.fromServer(CHANGE_FAILED.formatted(newName), oldName));
+        }
+    }
+
+    /**
      * Отключает указанного участника от беседы: закрывает ассоциированное с ним соединение
      * и удаляет его из реестра участников.
      * @param username имя участника, покидающего чат.
@@ -284,14 +294,6 @@ public class Dispatcher {
             e.printStackTrace();
             return false;
         }
-    }
-
-    /**
-     * Рассылает всем участникам уведомление о завершении работы
-     * и отключает их всех.
-     */
-    public void closeSession() {
-        getUsers().forEach(username -> disconnect(username, CLOSING_TXT));
     }
 
     /**
