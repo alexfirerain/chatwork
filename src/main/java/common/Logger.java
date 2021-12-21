@@ -114,8 +114,8 @@ public class Logger {
         logged.append(" от ").append(message.getSender() == null || "".equals(message.getSender()) ?
                   "сервера" : message.getSender())
               .append(" для ").append(message.getAddressee() == null ?
-                  (message.isServerMessage() ?
-                          "всех" : "сервера") : message.getAddressee()).append(": ");
+                  (message.isRequest() ?
+                          "сервера" : "всех") : message.getAddressee()).append(": ");
 
         if (message.isStopSign())
             logged.append(" <STOP_SIGN> ");

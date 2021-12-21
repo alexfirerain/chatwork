@@ -33,6 +33,9 @@ public class Receiver extends Thread {
      * Логировщик, протоколирующий входящие сообщения и события, случающиеся в Приёмнике.
      */
     private final Logger logger;
+    /**
+     * Был ли от получен от сервера сигнал на завершение соединения.
+     */
     private volatile boolean stopSignalized = false;
 
     /**
@@ -61,7 +64,7 @@ public class Receiver extends Thread {
                 info = "Соединение c сервером завершено.";
                 try {
                     connection.close();
-                    interrupt();
+//                    interrupt();
                 } catch (IOException ex) {
                     info += " Ошибка закрытия соединения: " + e.getMessage();
                     ex.printStackTrace();
@@ -118,6 +121,7 @@ public class Receiver extends Thread {
      */
     private void display(Message gotMessage) {
         System.out.println(gotMessage);
+        System.out.println();
         logger.logInbound(gotMessage);
     }
 

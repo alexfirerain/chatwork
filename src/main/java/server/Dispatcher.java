@@ -176,7 +176,7 @@ public class Dispatcher {
      * @param message транслируемое сообщение.
      */
     private void forward(Message message) {
-        if (!message.isTransferrable()) return;
+        if (!message.isTransferable()) return;
         logger.logTransferred(message);
         if (message.getAddressee() == null)
             getUsersBut(message.getSender()).forEach(user -> send(message, user));

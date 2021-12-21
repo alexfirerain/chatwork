@@ -21,7 +21,6 @@ public class Message implements Serializable {
      * то в нём передаётся пустая строка
      */
     final private String sender;
-
     /**
      * Указатель получателя для персонального текстового (или информационного) сообщения,
      * у публичного сообщения остаётся пустым.<p>
@@ -38,38 +37,6 @@ public class Message implements Serializable {
     final private String message;
 
     /**
-     * Сообщает, является ли указанная строка существующей и соответствующей требованиям к регистрируемому имени.
-     * @param name строка.
-     * @return  {@code истинно}, если строка удовлетворяет регулярке, то есть имеет хотя бы одну букву,
-     * а также любое количество цифр или пробелов.
-     */
-    public static boolean isAcceptableName(String name) {
-        return name != null && name.matches("[\\p{L}]+\\d*\\s*");
-    }
-
-    /**
-     * Создаёт новое серверное сообщение для указанного получателя с пустой строкой
-     * в качестве отправителя (условный сигнал о закрытии соединения).
-     * @param recipient получатель сообщения.
-     * @param message   текст сообщения о завершении работы.
-     * @return  новое стоп-сообщение с заданным текстом для адресата.
-     */
-    public static Message stopSign(String message, String recipient) {
-        return new Message(SERVER_MSG, "", recipient, message);
-    }
-
-    /**
-     * Устанавливает получателя (используется для широковещательной рассылки)
-     * и возвращает то же сообщение с изменённым полем.
-     * @param addressee устанавливаемое имя получателя.
-     * @return сообщение с установленным адресатом.
-     */
-    public Message setAddressee(String addressee) {
-        this.addressee = addressee;
-        return this;
-    }
-
-    /**
      * Внутренний конструктор сообщения через явное указание параметров.
      * @param type      тип сообщения.
      * @param sender    отправитель сообщения.
@@ -81,6 +48,26 @@ public class Message implements Serializable {
         this.sender = sender;
         this.addressee = addressee;
         this.message = message;
+    }
+    /**
+     * Устанавливает получателя и возвращает то же сообщение с изменённым полем.
+     * @param addressee устанавливаемое имя получателя.
+     * @return сообщение с установленным адресатом.
+     */
+    public Message setAddressee(String addressee) {
+        this.addressee = addressee;
+        return this;
+    }
+
+    /**
+     * Создаёт новое серверное сообщение для указанного получателя с пустой строкой
+     * в качестве отправителя (условный сигнал о закрытии соединения).
+     * @param recipient получатель сообщения.
+     * @param message   текст сообщения о завершении работы.
+     * @return  новое стоп-сообщение с заданным текстом для адресата.
+     */
+    public static Message stopSign(String message, String recipient) {
+        return new Message(SERVER_MSG, "", recipient, message);
     }
 
     @Override
@@ -104,6 +91,9 @@ public class Message implements Serializable {
         return output.toString();
     }
 
+    /*
+        Открытые статические методы для генерации сообщений.
+     */
     /**
      * Создаёт новое сообщение от клиента на основании его ввода.
      * @param inputText текст, введённый пользователем.
@@ -175,6 +165,7 @@ public class Message implements Serializable {
     public static Message fromServer(String messageText) {
         return fromServer(messageText, null);
     }
+
     /**
      * Создаёт новое сообщение с запросом регистрации без необходимости введения
      * условного знака "/reg" (в ответ на запрос имени при вхождении в беседу).
@@ -186,33 +177,54 @@ public class Message implements Serializable {
             putName = putName.substring("/reg ".length()).strip();
         return new Message(REG_REQUEST, putName, null, null);
     }
+    /**
+     * Сообщает, является ли указанная строка существующей и соответствующей требованиям к регистрируемому имени.
+     * @param name строка.
+     * @return  {@code истинно}, если строка удовлетворяет регулярке, то есть имеет хотя бы одну букву,
+     * а также любое количество цифр или пробелов.
+     */
+    public static boolean isAcceptableName(String name) {
+        return name != null && name.matches("[\\p{L}]+\\d*\\s*");
+    }
 
+    /*
+        Информационные методы сообщения.
+     */
+    /**
+     * Сообщает, является ли сообщение стоп-сигналом.
+     * @return {@code истинно}, если {@code "".equals(sender)}.
+     */
     public boolean isStopSign() {
         return "".equals(getSender());
     }
-
+    /**
+     * Сообщает, является ли сообщение серверным.
+     * @return {@code истинно}, если типа {@code SERVER_MSG};
+     */
     public boolean isServerMessage() { return getType() == SERVER_MSG; }
-
+    /**
+     * Сообщает, является ли сообщение запросом.
+     * @return {@code истинно}, если не является ни серверным, ни переправляемым;
+     */
     public boolean isRequest() { return getType().ordinal() > 2; }
-
-    public boolean isTransferrable() { return getType() == TXT_MSG || getType() == PRIVATE_MSG; }
+    /**
+     * Сообщает, является ли сообщение переправляемым.
+     * @return {@code истинно}, если типа {@code TXT_MSG || PRIVATE_MSG};
+     */
+    public boolean isTransferable() { return getType() == TXT_MSG || getType() == PRIVATE_MSG; }
 
     public MessageType getType() {
         return type;
     }
-
     public String getSender() {
         return sender;
     }
-
     public String getAddressee() {
         return addressee;
     }
-
     public String getMessage() {
         return message;
     }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -223,9 +235,8 @@ public class Message implements Serializable {
                 Objects.equals(addressee, another.addressee) &&
                 Objects.equals(message, another.message);
     }
-
     @Override
     public int hashCode() {
-        return Objects.hash(message);
+        return Objects.hash(sender, message);
     }
 }

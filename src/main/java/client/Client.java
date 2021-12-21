@@ -36,9 +36,21 @@ public class Client {
 
     final Logger logger;
 
+    /**
+     * Имя участника для использования на сервере.
+     */
     private String userName;
+    /**
+     * Соединение до сервера.
+     */
     private Socket connection = null;
+    /**
+     * Исходящий поток отправлять сообщения на сервер.
+     */
     private ObjectOutputStream translator = null;
+    /**
+     * Поток-приёмник входящих сообщений.
+     */
     private Receiver receiver = null;
     /**
      * Сигнализирует совпадение текущего имени пользователя данным на Сервере.
@@ -193,14 +205,22 @@ public class Client {
      * @throws IOException при ошибке исходящего потока.
      */
     private void send(String inputText) throws IOException, InterruptedException {
-        Message messageToSend = Message.fromClientInput(inputText, userName);
-        translator.writeObject(messageToSend);
-        logger.logOutbound(messageToSend);
+        push(Message.fromClientInput(inputText, userName));
         // если стоп-сигнал придёт сразу, закрываемся
         Thread.sleep(POST_SENDING_DELAY);
         if(receiver.stopSignReceived()) {
             connection.close();
         }
+    }
+
+    /**
+     * Отсылает сообщение в исходящий поток и логирует его.
+     * @param msg  засылаемое сообщение.
+     * @throws IOException если ошибка записи в поток.
+     */
+    private void push(Message msg) throws IOException {
+        translator.writeObject(msg);
+        logger.logOutbound(msg);
     }
 
     /**
@@ -226,9 +246,7 @@ public class Client {
      * @throws IOException при ошибке исходящего потока.
      */
     private void registeringRequest() throws IOException {
-        Message requestForRegistration = Message.registering(userName);
-        translator.writeObject(requestForRegistration);
-        logger.logOutbound(requestForRegistration);
+        push(Message.registering(userName));
     }
 
     /**
