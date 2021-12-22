@@ -3,12 +3,10 @@ package client;
 import common.Logger;
 import common.Message;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.Socket;
-
-import static common.MessageType.SERVER_MSG;
+import java.io.ObjectInputStream;
+import java.io.IOException;
+import java.io.EOFException;
 
 
 /**
@@ -86,6 +84,14 @@ public class Receiver extends Thread {
     }
 
     /**
+     * Сообщает состояние флага {@code stopSignalized}.
+     * @return {@code истинно}, если стоп-сигнал уже получен Приёмником.
+     */
+    public boolean stopSignReceived() {
+        return stopSignalized;
+    }
+
+    /**
      * Проверяет, что, если это серверное сообщение, является ли оно сигналом о завершении работы
      * — в таком случае ставим флажок, что сигнал на остановку получен.<p>
      * Затем проверяет, соответствует ли его поле получателя тому имени, которое стоит у Клиента.
@@ -115,17 +121,12 @@ public class Receiver extends Thread {
     }
 
     /**
-     * Производит отображение и логирование принятого сообщения
-     * (если это не подтверждение от сервера о получении).
+     * Производит отображение и логирование принятого сообщения.
      * @param gotMessage принятое сообщение.
      */
     private void display(Message gotMessage) {
         System.out.println(gotMessage);
         System.out.println();
         logger.logInbound(gotMessage);
-    }
-
-    public boolean stopSignReceived() {
-        return stopSignalized;
     }
 }

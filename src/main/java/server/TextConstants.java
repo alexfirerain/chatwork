@@ -1,7 +1,5 @@
 package server;
 
-import java.util.Arrays;
-
 public class TextConstants {
     static final String WELCOME_TEXT = ("""
             %s, добро пожаловать в переговорную комнату @%s:%d!

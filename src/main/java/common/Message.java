@@ -1,7 +1,5 @@
 package common;
 
-import server.Server;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
@@ -132,8 +130,8 @@ public class Message implements Serializable {
                 case "reg" -> {
                     type = REG_REQUEST;
                     sender = spaceIndex < inputText.length() ? inputText.substring(spaceIndex + 1).strip() : "";
-                    if (sender.length() > Server.nickLengthLimit)               // TODO: перенести в сервер (?)
-                        sender = sender.substring(0, Server.nickLengthLimit);
+                    if (sender.length() > Configurator.nickLengthLimit)
+                        sender = sender.substring(0, Configurator.nickLengthLimit);
                 }
                 case "users" -> type = LIST_REQUEST;
                 case "exit" -> type = EXIT_REQUEST;

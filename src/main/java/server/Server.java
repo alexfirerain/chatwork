@@ -18,8 +18,6 @@ public class Server {
     private static final byte[] password_default = "0000".getBytes();
     private static final String host_default = "localhost";
 
-    public static final int nickLengthLimit = 15;        // ? куда его
-
     /**
      * Адрес сервера.
      */
