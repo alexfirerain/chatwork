@@ -2,6 +2,7 @@ package common;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -42,6 +43,7 @@ public class Logger {
      */
     private volatile File logFile;
 
+
     public Logger(boolean log_inbound, boolean log_outbound, boolean log_transferred, boolean log_events) {
         this.log_inbound = log_inbound;
         this.log_outbound = log_outbound;
@@ -59,9 +61,10 @@ public class Logger {
     public void setLogFile(String fileName) {
         logFile = new File(fileName);
 
-        if (!logFile.exists()) try {
+        try {
             if (logFile.createNewFile()) {
-                System.out.printf("Лог %s создан%n", fileName);
+                String created = "Лог %s создан%n".formatted(fileName);
+                logEvent(created);
             }
         } catch (IOException e) {
             System.out.println("Невозможно создать лог. " + e.getMessage());

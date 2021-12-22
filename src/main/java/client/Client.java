@@ -77,6 +77,112 @@ public class Client {
     }
 
     /**
+     * Создаёт новый Клиент на основе данных из файла настроек,
+     * либо, если файл или какие-то отдельные настройки не найдены,
+     * на основе значений по умолчанию.
+     * @param filePath путь к файлу настроек.
+     */
+    public Client(Path filePath) {
+        Configurator config = new Configurator(filePath);
+        HUB = config.getStringProperty("HOST").orElse(host_default);
+        PORT = config.getIntProperty("PORT").orElse(port_default);
+        userName = config.getStringProperty("NAME").orElse(name_default);
+        settingFile = filePath;
+
+        LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
+        LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
+        LOG_EVENTS = config.getBoolProperty("LOG_EVENTS").orElse(false);
+        logger = getLogger();
+        logger.setLogFile(Message.isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
+    }
+
+    /*
+        Методы доступа к полям.
+     */
+    /**
+     * Выставляет в Клиенте флажок, что установленное имя пользователя зарегистрировано
+     * на чат-сервере.
+     */
+    public void setRegistered() {
+        registered = true;
+    }
+
+    /**
+     * Показывает, является ли имя клиента зарегистрированным на чат-сервере.
+     * @return значение флажка {@code isRegistered}, то есть {@code истинно},
+     * если вызывался {@code .setRegistered()}.
+     */
+    public boolean isRegistered() {
+        return registered;
+    }
+
+    /**
+     * Устанавливает имя пользователя, используемое для исходящих сообщений.
+     * Создаёт лог-файл на установленное имя и заносит в него запись об этом.
+     * @param newName устанавливаемое имя.
+     */
+    public void setUserName(String newName) {
+        userName = newName;
+        logger.setLogFile(newName + ".log");        // TODO: уточнить проверку на недопустимые символы в файловой системе ↑
+        logger.logEvent("установлено имя: " + newName);
+    }
+
+    /**
+     * Выдаёт имя пользователя, используемое в клиенте в текущий момент.
+     * @return строку имя участника.
+     */
+    public String getUserName() {
+        return userName;
+    }
+
+    /**
+     * Выдаёт ссылку на сокетное соединение, открытое клиентом.
+     * @return ссылку на установленный сокет.
+     */
+    public Socket getConnection() {
+        return connection;
+    }
+
+
+    /*
+        Методы отправки сообщений.
+     */
+    /**
+     * Отсылает сообщение в исходящий поток и логирует его.
+     * @param msg  засылаемое сообщение.
+     * @throws IOException если ошибка записи в поток.
+     */
+    private void push(Message msg) throws IOException {
+        translator.writeObject(msg);
+        logger.logOutbound(msg);
+    }
+    /**
+     * Отправляет на сервер запрос регистрации того имени,
+     * которое текущее в поле {@code userName}.
+     * @throws IOException при ошибке исходящего потока.
+     */
+    private void registeringRequest() throws IOException {
+        push(Message.registering(userName));
+    }
+    /**
+     * Формирует из полученного текста новое сообщение от пользователя
+     * и засылает его на чат-сервер. Затем замирает на некоторое время.
+     * @param inputText введённый пользователем текст.
+     * @throws IOException при ошибке исходящего потока.
+     */
+    private void send(String inputText) throws IOException, InterruptedException {
+        push(Message.fromClientInput(inputText, userName));
+        // если стоп-сигнал придёт сразу, закрываемся
+        Thread.sleep(POST_SENDING_DELAY);
+        if(receiver.stopSignReceived()) {
+            connection.close();
+        }
+    }
+
+    /*
+        Рабочие процедуры.
+     */
+    /**
      * Подготавливает пользователя к подключению: приветствует, затем интересуется,
      * какое имя использовать для первой попытки регистрации на чат-сервере.
      */
@@ -99,35 +205,6 @@ public class Client {
             nameToUse = usersInput.nextLine();
         }
         setUserName(nameToUse);
-    }
-
-    /**
-     * Создаёт новый Клиент на основе данных из файла настроек,
-     * либо, если файл или какие-то отдельные настройки не найдены,
-     * на основе значений по умолчанию.
-     * @param filePath путь к файлу настроек.
-     */
-    public Client(Path filePath) {
-        Configurator config = new Configurator(filePath);
-        HUB = config.getStringProperty("HOST").orElse(host_default);
-        PORT = config.getIntProperty("PORT").orElse(port_default);
-        userName = config.getStringProperty("NAME").orElse(name_default);
-        settingFile = filePath;
-
-        LOG_INBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
-        LOG_OUTBOUND = config.getBoolProperty("LOG_INBOUND").orElse(true);
-        LOG_EVENTS = config.getBoolProperty("LOG_EVENTS").orElse(false);
-        logger = getLogger();
-        logger.setLogFile(Message.isAcceptableName(userName) ? (userName + ".log") : "default_user.log");
-    }
-
-    /**
-     * Вспомогательная функция, создающая экземпляр логировщика для сервера
-     * с теми настройками протоколирования, которые уже заданы в константах сервера.
-     * @return экземпляр логера с описанными настройками.
-     */
-    private Logger getLogger() {
-        return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_EVENTS);
     }
 
     /**
@@ -198,57 +275,9 @@ public class Client {
 
     }
 
-    /**
-     * Формирует из полученного текста новое сообщение от пользователя
-     * и засылает его на чат-сервер. Затем замирает на некоторое время.
-     * @param inputText введённый пользователем текст.
-     * @throws IOException при ошибке исходящего потока.
+    /*
+         Вспомогательные функции.
      */
-    private void send(String inputText) throws IOException, InterruptedException {
-        push(Message.fromClientInput(inputText, userName));
-        // если стоп-сигнал придёт сразу, закрываемся
-        Thread.sleep(POST_SENDING_DELAY);
-        if(receiver.stopSignReceived()) {
-            connection.close();
-        }
-    }
-
-    /**
-     * Отсылает сообщение в исходящий поток и логирует его.
-     * @param msg  засылаемое сообщение.
-     * @throws IOException если ошибка записи в поток.
-     */
-    private void push(Message msg) throws IOException {
-        translator.writeObject(msg);
-        logger.logOutbound(msg);
-    }
-
-    /**
-     * Выставляет в Клиенте флажок, что установленное имя пользователя зарегистрировано
-     * на чат-сервере.
-     */
-    public void setRegistered() {
-        registered = true;
-    }
-
-    /**
-     * Показывает, является ли имя клиента зарегистрированным на чат-сервере.
-     * @return значение флажка {@code isRegistered}, то есть {@code истинно},
-     * если вызывался {@code .setRegistered()}.
-     */
-    public boolean isRegistered() {
-        return registered;
-    }
-
-    /**
-     * Отправляет на сервер запрос регистрации того имени,
-     * которое текущее в поле {@code userName}.
-     * @throws IOException при ошибке исходящего потока.
-     */
-    private void registeringRequest() throws IOException {
-        push(Message.registering(userName));
-    }
-
     /**
      * Сбрасывает текущие настройки в связанный файл настроек.
      */
@@ -265,21 +294,12 @@ public class Client {
     }
 
     /**
-     * Устанавливает имя пользователя, используемое для исходящих сообщений.
-     * @param newName устанавливаемое имя.
+     * Вспомогательная функция, создающая экземпляр логировщика для сервера
+     * с теми настройками протоколирования, которые уже заданы в константах сервера.
+     * @return экземпляр логера с описанными настройками.
      */
-    public void setUserName(String newName) {
-        userName = newName;
-        logger.setLogFile(newName + ".log");        // TODO: уточнить проверку на недопустимые символы в файловой системе ↑
-        logger.logEvent("установлено имя: " + newName);
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public Socket getConnection() {
-        return connection;
+    private Logger getLogger() {
+        return new Logger(LOG_INBOUND, LOG_OUTBOUND, false, LOG_EVENTS);
     }
 
 
