@@ -95,11 +95,8 @@ public class Message implements Serializable {
      */
     /**
      * Создаёт новое сообщение от клиента на основании его ввода.
-     * @param inputText текст, введённый пользователем.
-     * @param sender    имя пользователя, под которым он участвует
-     *                 или планирует участвовать в беседе.
-     * @return  новое сообщение с типом и получателем, определёнными
-     * по условным знакам в начале введённого пользователем текста:
+     * Если строка ввода начинается с токена, находит его и
+     * определяет на его основе тип:
      * <ul>
      * <li>"@имя_получателя " = персональное сообщение</li>
      * <li>"/reg новое_имя" = запрос от участника на смену имени</li>
@@ -108,6 +105,12 @@ public class Message implements Serializable {
      * <li>"/terminate " = запрос на выключение сервера</li>
      * <li>иначе: обычное текстовое сообщение</li>
      * </ul>
+     * @param inputText текст, введённый пользователем.
+     * @param sender    имя пользователя, под которым он участвует
+     *                 или планирует участвовать в беседе.
+     * @return  новое сообщение с типом и получателем, определёнными
+     * по токену.
+     *
      */
     public static Message fromClientInput(String inputText, String sender) {
         MessageType type = TXT_MSG;
@@ -210,7 +213,9 @@ public class Message implements Serializable {
      * Сообщает, является ли сообщение переправляемым.
      * @return {@code истинно}, если типа {@code TXT_MSG || PRIVATE_MSG};
      */
-    public boolean isTransferable() { return getType() == TXT_MSG || getType() == PRIVATE_MSG; }
+    public boolean isTransferable() {
+        return getType() == TXT_MSG || getType() == PRIVATE_MSG;
+    }
 
     public MessageType getType() {
         return type;

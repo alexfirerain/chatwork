@@ -110,7 +110,7 @@ public class Client {
     /**
      * Показывает, является ли имя клиента зарегистрированным на чат-сервере.
      * @return значение флажка {@code isRegistered}, то есть {@code истинно},
-     * если вызывался {@code .setRegistered()}.
+     * если вызывался {@link #setRegistered()}.
      */
     public boolean isRegistered() {
         return registered;
@@ -180,7 +180,7 @@ public class Client {
     }
 
     /*
-        Рабочие процедуры.
+     *   Рабочие процедуры.
      */
     /**
      * Подготавливает пользователя к подключению: приветствует, затем интересуется,

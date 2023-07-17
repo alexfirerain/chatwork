@@ -45,7 +45,7 @@ public class Dispatcher {
 
 
     /*
-        Методы работы с реестром участников.
+     *   Методы работы с реестром участников.
      */
     /**
      * Фиксирует в реестре связь данного имени с данным соединением, если имя и соединение существуют,
@@ -179,7 +179,8 @@ public class Dispatcher {
         if (!message.isTransferable()) return;
         logger.logTransferred(message);
         if (message.getAddressee() == null)
-            getUsersBut(message.getSender()).forEach(user -> send(message, user));
+            getUsersBut(message.getSender())
+                    .forEach(user -> send(message, user));
         else
             send(message, false);
     }

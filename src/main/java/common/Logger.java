@@ -89,32 +89,32 @@ public class Logger {
      * @param inboundMessage протоколируемое сообщение.
      */
     public void logInbound(Message inboundMessage) {
-        if (!log_inbound) return;
-        log(messageToLog("получено", inboundMessage));
+        if (log_inbound)
+            log(messageToLog("получено", inboundMessage));
     }
     /**
      * Логирует сообщение согласно шаблону, если включено логирование исходящих.
      * @param outboundMessage протоколируемое сообщение.
      */
     public void logOutbound(Message outboundMessage) {
-        if (!log_outbound) return;
-        log(messageToLog("отослано", outboundMessage));
+        if (log_outbound)
+            log(messageToLog("отослано", outboundMessage));
     }
     /**
      * Логирует сообщение согласно шаблону, если включено логирование передаваемых.
      * @param transferredMessage протоколируемое сообщение.
      */
     public void logTransferred(Message transferredMessage) {
-        if (!log_transferred) return;
-        log(messageToLog("переправлено", transferredMessage));
+        if (log_transferred)
+            log(messageToLog("переправлено", transferredMessage));
     }
     /**
      * Логирует полученную строку, если включено логирование событий.
      * @param event протоколируемое событие.
      */
     public void logEvent(String event) {
-        if (!log_events) return;
-        log(event);
+        if (log_events)
+            log(event);
     }
 
     /**
