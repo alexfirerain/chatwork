@@ -70,13 +70,13 @@ public class Logger {
      */
     public void setLogFile(String fileName) {
         try {
-            if (!Message.isAcceptableName(fileName))
+            if (!Message.isAcceptableName(fileName.substring(0, fileName.indexOf("."))))
                 throw new IllegalArgumentException("Неприемлемое имя!");
+            if (!fileName.endsWith(".log"))
+                fileName += ".log";
             logFile = new File(fileName);
-            if (logFile.createNewFile()) {
-                String created = "Лог %s создан%n".formatted(fileName);
-                logEvent(created);
-            }
+            if (logFile.createNewFile())
+                logEvent("Лог %s создан%n".formatted(fileName));
         } catch (IOException | IllegalArgumentException e) {
             System.out.println("Невозможно создать лог. " + e.getMessage());
         }
