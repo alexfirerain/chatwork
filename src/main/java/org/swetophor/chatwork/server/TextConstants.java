@@ -1,4 +1,4 @@
-package server;
+package org.swetophor.chatwork.server;
 
 public class TextConstants {
     static final String WELCOME_TEXT = ("""

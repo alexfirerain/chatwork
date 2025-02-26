@@ -1,7 +1,7 @@
-package server;
+package org.swetophor.chatwork.server;
 
-import common.Message;
-import common.Logger;
+import org.swetophor.chatwork.common.Message;
+import org.swetophor.chatwork.common.Logger;
 
 import java.net.Socket;
 import java.io.ObjectInputStream;
@@ -9,7 +9,7 @@ import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.net.SocketException;
 
-import static server.TextConstants.*;
+import static org.swetophor.chatwork.server.TextConstants.*;
 
 /**
  * Исполняемая в самостоятельном потоке логика работы сервера с конкретным подключением.

@@ -1,4 +1,4 @@
-package common;
+package org.swetophor.chatwork.common;
 
 import java.io.File;
 import java.util.Date;

@@ -3,14 +3,17 @@ plugins {
 }
 
 compileJava.options.encoding = 'UTF-8'
-//javadoc.options.encoding = 'UTF-8'
+javadoc.options.encoding = 'UTF-8'
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
 group 'ru.netology'
-version '0.3'
+version '0.4'
+
+sourceCompatibility = 17
+targetCompatibility = 17
 
 repositories {
     mavenCentral()
@@ -24,4 +27,8 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+manifest {
+    attributes 'Main-Class': 'ru.netology.client.Client'
 }

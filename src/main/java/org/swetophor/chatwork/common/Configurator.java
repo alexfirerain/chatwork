@@ -1,4 +1,4 @@
-package common;
+package org.swetophor.chatwork.common;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,7 +22,7 @@ public class Configurator {
     /**
      * Карта настроек, соответствующая конфигурации.
      */
-    private final Map<String,String> settings;
+    private final Map<String, String> settings;
 
     /**
      * Инструментальная статическая функция. Определяет путь к файлу настроек, который должен использоваться.<p>
@@ -36,11 +36,12 @@ public class Configurator {
      */
     public static Path identifySource(String[] args, Scanner usersInput) {
         String filePath;
-        do if (args.length > 0 && Files.isRegularFile(Path.of(args[0]))) {
-            filePath = args[0];
-        } else {
-            System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
-            filePath = usersInput.nextLine();
+        do
+            if (args.length > 0 && Files.isRegularFile(Path.of(args[0])))
+                filePath = args[0];
+            else {
+                System.out.println("Источник настроек не обнаружен, введите имя файла вручную:");
+                filePath = usersInput.nextLine();
         } while (!Files.isRegularFile(Path.of(filePath)));
         System.out.println("Настройки загружены из " + filePath);
         return Path.of(filePath);

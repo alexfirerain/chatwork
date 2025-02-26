@@ -1,7 +1,7 @@
-package server;
+package org.swetophor.chatwork.server;
 
-import common.Configurator;
-import common.Logger;
+import org.swetophor.chatwork.common.Configurator;
+import org.swetophor.chatwork.common.Logger;
 
 import java.io.IOException;
 import java.net.ServerSocket;

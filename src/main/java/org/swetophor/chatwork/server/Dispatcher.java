@@ -1,7 +1,7 @@
-package server;
+package org.swetophor.chatwork.server;
 
-import common.Message;
-import common.Logger;
+import org.swetophor.chatwork.common.Message;
+import org.swetophor.chatwork.common.Logger;
 
 import java.util.Map;
 import java.util.Set;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import java.io.IOException;
 import java.net.SocketException;
 
-import static server.TextConstants.*;
+import static org.swetophor.chatwork.server.TextConstants.*;
 
 /**
  * Реализует логику работы с подключениями: регистрация участников беседы, их учёт,

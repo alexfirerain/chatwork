@@ -1,4 +1,4 @@
-package common;
+package org.swetophor.chatwork.common;
 
 /**
  * Сервер может посылать клиенту сообщения первых трёх типов

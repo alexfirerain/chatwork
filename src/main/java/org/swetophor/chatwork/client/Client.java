@@ -1,8 +1,8 @@
-package client;
+package org.swetophor.chatwork.client;
 
-import common.Configurator;
-import common.Logger;
-import common.Message;
+import org.swetophor.chatwork.common.Configurator;
+import org.swetophor.chatwork.common.Logger;
+import org.swetophor.chatwork.common.Message;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -158,7 +158,7 @@ public class Client {
     }
     /**
      * Отправляет на сервер запрос регистрации того имени,
-     * которое текущее в поле {@code userName}.
+     * которое текущее в поле {@link #userName}.
      * @throws IOException при ошибке исходящего потока.
      */
     private void registeringRequest() throws IOException {
@@ -254,12 +254,15 @@ public class Client {
         } catch (UnknownHostException e) {
             error = "Хаб для подключения не обнаружен: " + e.getMessage();
             e.printStackTrace();
+
         } catch (IOException e) {
             error = "Ошибка соединения: " + e.getMessage();
             e.printStackTrace();
+
         } catch (InterruptedException e) {
             error = "Прерывание: " + e.getMessage();
             e.printStackTrace();
+
         } finally {
             if (error != null) {
                 System.out.println(error);

@@ -1,7 +1,7 @@
-package client;
+package org.swetophor.chatwork.client;
 
-import common.Logger;
-import common.Message;
+import org.swetophor.chatwork.common.Logger;
+import org.swetophor.chatwork.common.Message;
 
 import java.net.Socket;
 import java.io.ObjectInputStream;

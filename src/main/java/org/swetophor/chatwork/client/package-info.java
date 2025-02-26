@@ -1,4 +1,4 @@
 /**
  * Исходный код Клиента для Чат-Хаба.
  */
-package client;
+package org.swetophor.chatwork.client;

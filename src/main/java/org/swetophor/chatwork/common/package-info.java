@@ -6,4 +6,4 @@
  * </ul>
  *
  */
-package common;
+package org.swetophor.chatwork.common;

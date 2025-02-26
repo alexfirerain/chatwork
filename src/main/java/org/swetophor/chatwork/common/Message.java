@@ -1,20 +1,23 @@
-package common;
+package org.swetophor.chatwork.common;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
-import static common.MessageType.*;
+import static org.swetophor.chatwork.common.MessageType.*;
 
+/**
+ *
+ */
 public class Message implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     /**
-     * служебное поле, определяющее тип
+     * Служебное поле, определяющее тип
      */
     final private MessageType type;
     /**
-     * автор сообщения (для регистрирующего сообщения регистрируемое имя),
+     * Автор сообщения (для регистрирующего сообщения регистрируемое имя),
      * сервер оставляет пустым, а если это условный знак, что сессия закрывается,
      * то в нём передаётся пустая строка
      */
@@ -31,7 +34,7 @@ public class Message implements Serializable {
      */
     private String addressee;
     /**
-     * сообщаемая в сообщении строка; у служебных сообщений пусто
+     * Сообщаемая в сообщении строка; у служебных сообщений пусто
      */
     final private String message;
 
@@ -186,7 +189,7 @@ public class Message implements Serializable {
      * а также любое количество цифр или пробелов.
      */
     public static boolean isAcceptableName(String name) {
-        return name != null && name.matches("[\\p{L}]+\\d*\\s*");
+        return name != null && name.matches("\\p{L}+\\d*\\s*");
     }
 
     /*
@@ -197,24 +200,24 @@ public class Message implements Serializable {
      * @return {@code истинно}, если {@code "".equals(sender)}.
      */
     public boolean isStopSign() {
-        return "".equals(getSender());
+        return "".equals(sender);
     }
     /**
      * Сообщает, является ли сообщение серверным.
      * @return {@code истинно}, если типа {@code SERVER_MSG};
      */
-    public boolean isServerMessage() { return getType() == SERVER_MSG; }
+    public boolean isServerMessage() { return type == SERVER_MSG; }
     /**
      * Сообщает, является ли сообщение запросом.
      * @return {@code истинно}, если не является ни серверным, ни переправляемым;
      */
-    public boolean isRequest() { return getType().ordinal() > 2; }
+    public boolean isRequest() { return type.ordinal() > 2; }
     /**
      * Сообщает, является ли сообщение переправляемым.
      * @return {@code истинно}, если типа {@code TXT_MSG || PRIVATE_MSG};
      */
     public boolean isTransferable() {
-        return getType() == TXT_MSG || getType() == PRIVATE_MSG;
+        return type == TXT_MSG || type == PRIVATE_MSG;
     }
 
     public MessageType getType() {
